@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"text/tabwriter"
@@ -26,6 +27,13 @@ var (
 		"https://rss.nytimes.com",
 	}
 )
+
+type FeedItem struct {
+	Title       string
+	PublishTime time.Time
+	Links       []string
+	Feed        string
+}
 
 type Feed struct {
 	URL string
@@ -87,13 +95,35 @@ func main() {
 	close(results)
 	close(errs)
 
-	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
+	var feedItems []FeedItem
 	for result := range results {
 		if result == nil {
 			continue
 		}
-		fmt.Fprintf(w, formatFeed(result))
+		newFeedItem := newFeedItemCreator(result)
+
+		for _, item := range result.Channel.Items {
+			feedItem, err := newFeedItem(item)
+			if err != nil {
+				continue
+			}
+			feedItems = append(feedItems, feedItem)
+		}
+
 	}
+
+	sort.Slice(feedItems, func(i, j int) bool {
+		return feedItems[i].PublishTime.After(feedItems[j].PublishTime)
+	})
+
+	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
+	for _, item := range feedItems {
+		if time.Since(item.PublishTime) > maxAge {
+			continue
+		}
+		fmt.Fprintf(w, formatItem(item))
+	}
+
 	w.Flush()
 
 	for err := range errs {
@@ -122,8 +152,7 @@ func getFeed(url string) (*Feed, error) {
 	return &Feed{url, rss}, nil
 }
 
-func formatFeed(feed *Feed) string {
-	builder := strings.Builder{}
+func linkFormatter(feed *Feed) func(Item) string {
 	var hasPaywall bool
 	for _, pw := range paywalls {
 		if strings.HasPrefix(feed.URL, pw) {
@@ -131,32 +160,6 @@ func formatFeed(feed *Feed) string {
 			break
 		}
 	}
-
-	formatLink := linkFormatter(hasPaywall)
-
-	var writtenTitle bool
-	for _, item := range feed.Channel.Items {
-		if !checkAge(item) {
-			continue
-		}
-		if !writtenTitle {
-			builder.WriteString(fmt.Sprintf("\n%s\n", feed.Channel.Title))
-			writtenTitle = true
-		}
-		builder.WriteString(formatItem(item, formatLink))
-	}
-	return builder.String()
-}
-
-func checkAge(item Item) bool {
-	itemDate, err := parseDate(item.PubDate)
-	if err != nil {
-		return true
-	}
-	return time.Since(itemDate) < maxAge
-}
-
-func linkFormatter(hasPaywall bool) func(Item) string {
 	return func(item Item) string {
 		link := item.Link
 		if link == "" {
@@ -170,8 +173,35 @@ func linkFormatter(hasPaywall bool) func(Item) string {
 	}
 }
 
-func formatItem(item Item, formatLink func(Item) string) string {
-	return fmt.Sprintf("%s:\t%s\t%s\t%s\n", formatDate(item.PubDate), item.Title, formatLink(item), item.Comments)
+func formatItem(item FeedItem) string {
+	builder := strings.Builder{}
+	builder.WriteString(fmt.Sprintf("%s:\t%s", formatDate(item.PublishTime), item.Title))
+	for _, link := range item.Links {
+		builder.WriteString(fmt.Sprintf("\t%s", link))
+	}
+	builder.WriteString("\n")
+	return builder.String()
+
+}
+
+func newFeedItemCreator(feed *Feed) func(Item) (FeedItem, error) {
+	return func(item Item) (FeedItem, error) {
+		formatLink := linkFormatter(feed)
+		links := []string{formatLink(item)}
+		if item.Comments != "" {
+			links = append(links, item.Comments)
+		}
+		pubTime, err := parseDate(item.PubDate)
+		if err != nil {
+			return FeedItem{}, err
+		}
+		return FeedItem{
+			Title:       item.Title,
+			Links:       links,
+			PublishTime: pubTime,
+			Feed:        feed.Channel.Title,
+		}, nil
+	}
 }
 
 func parseDate(rawDate string) (time.Time, error) {
@@ -186,13 +216,7 @@ func parseDate(rawDate string) (time.Time, error) {
 	return t, err
 }
 
-// formatDate attempts to put the rawDate into one of the supported formats. If
-// that cannot be done, then the original raw string is returned.
-func formatDate(rawDate string) string {
-	t, err := parseDate(rawDate)
-	if err != nil {
-		return rawDate
-	}
+func formatDate(t time.Time) string {
 	y, m, d := t.Date()
 	return fmt.Sprintf("%d/%02d/%02d", y, m, d)
 }

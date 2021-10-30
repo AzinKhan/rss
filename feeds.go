@@ -1,9 +1,8 @@
-package main
+package rss
 
 import (
 	"bufio"
 	"encoding/xml"
-	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,14 +11,10 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"text/tabwriter"
 	"time"
 )
 
-const (
-	feedsFile        = "feeds.txt"
-	outputTimeLayout = "2006/01/02"
-)
+const outputTimeLayout = "2006/01/02"
 
 var (
 	dateFormats = []string{time.RFC1123, time.RFC1123Z}
@@ -90,9 +85,22 @@ const (
 	DisplayModeGrouped
 )
 
+// Display returns feed items for Display. There may be a different number of
+// feed items returned from those passed in.
+func Display(feedItems []FeedItem, mode DisplayMode) []FeedItem {
+	switch mode {
+	case DisplayModeReverseChronological:
+		return reverseChronological(feedItems)
+	case DisplayModeGrouped:
+		return grouped(feedItems)
+	}
+	return feedItems
+}
+
 type Filter func(FeedItem) bool
 
-func deduplicate() Filter {
+// Deduplicate ensures that each feed item only appears in the output once.
+func Deduplicate() Filter {
 	urls := make(map[string]struct{})
 	return func(item FeedItem) bool {
 		for _, link := range item.Links {
@@ -106,49 +114,17 @@ func deduplicate() Filter {
 	}
 }
 
-func oldestItem(maxAge time.Duration) Filter {
+// OldestItem ensures that the output feed items are less than the max age
+// given.
+func OldestItem(maxAge time.Duration) Filter {
 	return func(item FeedItem) bool {
 		return time.Since(item.PublishTime) <= maxAge
 	}
 }
 
-func main() {
-	var dm, maxHours int
-	flag.IntVar(&dm, "m", 0, "Display mode")
-	flag.IntVar(&maxHours, "h", 24, "Max age of items (hours)")
-	flag.Parse()
-	displayMode := DisplayMode(dm)
-	maxAge := time.Duration(maxHours) * time.Hour
-
-	f, err := os.Open(feedsFile)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	feeds := getFeeds(getURLs(f))
-	feedItems := getFeedItems(feeds, oldestItem(maxAge), deduplicate())
-
-	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
-	for _, item := range display(feedItems, displayMode) {
-		fmt.Fprintf(w, item.Format())
-	}
-	w.Flush()
-}
-
-// display returns feed items for display. There may be a different number of
-// feed items returned from those passed in.
-func display(feedItems []FeedItem, mode DisplayMode) []FeedItem {
-	switch mode {
-	case DisplayModeReverseChronological:
-		return reverseChronological(feedItems)
-	case DisplayModeGrouped:
-		return grouped(feedItems)
-	}
-	return feedItems
-}
-
-func getFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {
+// GetFeedItems unpacks the items within the given feeds, applying filters if
+// given.
+func GetFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {
 	var feedItems []FeedItem
 	for _, feed := range feeds {
 		if feed == nil {
@@ -173,7 +149,9 @@ func getFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {
 	return feedItems
 }
 
-func getURLs(r io.Reader) []string {
+// GetURLs reads the given Reader and returns a list of the urls from which
+// feeds can be fetched.
+func GetURLs(r io.Reader) []string {
 	scanner := bufio.NewScanner(r)
 	var urls []string
 	for scanner.Scan() {
@@ -187,7 +165,9 @@ func getURLs(r io.Reader) []string {
 	return urls
 }
 
-func getFeeds(urls []string) []*Feed {
+// GetFeeds makes requests to the hosts at the given URLs and returns a *Feed
+// for each.
+func GetFeeds(urls []string) []*Feed {
 	var wg sync.WaitGroup
 	wg.Add(len(urls))
 	results := make([]*Feed, len(urls))

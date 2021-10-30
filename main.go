@@ -131,9 +131,8 @@ func main() {
 		if err == nil {
 			continue
 		}
-		fmt.Fprintf(w, err.Error())
+		fmt.Fprintf(os.Stderr, err.Error())
 	}
-	w.Flush()
 }
 
 func getFeed(url string) (*Feed, error) {

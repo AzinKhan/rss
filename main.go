@@ -204,7 +204,7 @@ func grouped(feedItems []FeedItem) []FeedItem {
 		// Create a title-only item for the feed itself
 		result = append(result, FeedItem{})
 		result = append(result, FeedItem{Title: feed})
-		for _, item := range items {
+		for _, item := range reverseChronological(items) {
 			result = append(result, item)
 		}
 	}

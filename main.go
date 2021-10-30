@@ -109,8 +109,9 @@ func main() {
 			}
 			feedItems = append(feedItems, feedItem)
 		}
-
 	}
+
+	feedItems = deduplicate(feedItems)
 
 	sort.Slice(feedItems, func(i, j int) bool {
 		return feedItems[i].PublishTime.After(feedItems[j].PublishTime)
@@ -219,4 +220,26 @@ func parseDate(rawDate string) (time.Time, error) {
 func formatDate(t time.Time) string {
 	y, m, d := t.Date()
 	return fmt.Sprintf("%d/%02d/%02d", y, m, d)
+}
+
+func deduplicate(feedItems []FeedItem) []FeedItem {
+	urls := make(map[string]struct{})
+	result := make([]FeedItem, 0, len(feedItems))
+
+mainloop:
+	for _, item := range feedItems {
+		// Skip the item if its links are already found
+		var found bool
+		for _, link := range item.Links {
+			_, found = urls[link]
+			if found {
+				continue mainloop
+			}
+		}
+		result = append(result, item)
+		for _, link := range item.Links {
+			urls[link] = struct{}{}
+		}
+	}
+	return result
 }

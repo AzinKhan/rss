@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"text/tabwriter"
 	"time"
 )
@@ -16,6 +17,9 @@ var (
 		"https://danluu.com/atom",
 		"http://syndication.thedailywtf.com/TheDailyWtf",
 		"https://www.ft.com/world?format=rss",
+		//"https://codeinthehole.com/index.xml",
+		"https://www.schneier.com/feed/",
+		//"https://xkcd.com/atom.xml",
 	}
 	dateFormats = []string{time.RFC1123, time.RFC1123Z}
 	client      = http.DefaultClient
@@ -46,19 +50,40 @@ type Item struct {
 }
 
 func main() {
-
-	var results []*Feed
+	var wg sync.WaitGroup
+	wg.Add(len(urls))
+	results := make(chan *Feed, len(urls))
+	errs := make(chan error, len(urls))
 	for _, url := range urls {
-		result, err := getFeed(url)
-		if err != nil {
-			continue
-		}
-		results = append(results, result)
+		url := url
+		go func() {
+			defer wg.Done()
+			result, err := getFeed(url)
+			if err != nil {
+				errs <- err
+			}
+			results <- result
+		}()
 	}
+	wg.Wait()
+	close(results)
+	close(errs)
 
 	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
-	for _, result := range results {
+	for result := range results {
+		if result == nil {
+			continue
+		}
 		fmt.Fprintf(w, formatFeed(result))
+	}
+	w.Flush()
+
+	fmt.Fprintf(w, "\nERRORS\n")
+	for err := range errs {
+		if err == nil {
+			continue
+		}
+		fmt.Fprintf(w, err.Error())
 	}
 	w.Flush()
 }
@@ -78,17 +103,16 @@ func formatItem(item Item) string {
 func getFeed(url string) (*Feed, error) {
 	resp, err := client.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting %s: %w", url, err)
 	}
-
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading body from %s: %w", url, err)
 	}
 	var feed Feed
 	err = xml.Unmarshal(body, &feed)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error unmarshaling body from %s: %w", url, err)
 	}
 	return &feed, nil
 }

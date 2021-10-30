@@ -116,6 +116,7 @@ func main() {
 		for _, item := range result.Channel.Items {
 			feedItem, err := newFeedItem(item)
 			if err != nil {
+				fmt.Fprintf(os.Stderr, err.Error())
 				continue
 			}
 			feedItems = append(feedItems, feedItem)

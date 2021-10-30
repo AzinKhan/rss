@@ -129,18 +129,23 @@ func main() {
 	feeds := getFeeds(getURLs(f))
 	feedItems := getFeedItems(feeds, oldestItem(maxAge), deduplicate())
 
-	switch displayMode {
-	case DisplayModeReverseChronological:
-		feedItems = reverseChronological(feedItems)
-	case DisplayModeGrouped:
-		feedItems = grouped(feedItems)
-	}
-
 	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
-	for _, item := range feedItems {
+	for _, item := range display(feedItems, displayMode) {
 		fmt.Fprintf(w, item.Format())
 	}
 	w.Flush()
+}
+
+// display returns feed items for display. There may be a different number of
+// feed items returned from those passed in.
+func display(feedItems []FeedItem, mode DisplayMode) []FeedItem {
+	switch mode {
+	case DisplayModeReverseChronological:
+		return reverseChronological(feedItems)
+	case DisplayModeGrouped:
+		return grouped(feedItems)
+	}
+	return feedItems
 }
 
 func getFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {

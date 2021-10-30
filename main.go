@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -96,47 +97,21 @@ func main() {
 	flag.Parse()
 	displayMode := DisplayMode(dm)
 	maxAge := time.Duration(maxHours) * time.Hour
+
 	f, err := os.Open(feedsFile)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	scanner := bufio.NewScanner(f)
-	var urls []string
-	for scanner.Scan() {
-		url := scanner.Text()
-		if strings.HasPrefix(url, "#") {
-			// Commented out url
-			continue
-		}
-		urls = append(urls, url)
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(len(urls))
-	results := make(chan *Feed, len(urls))
-	errs := make(chan error, len(urls))
-	for _, url := range urls {
-		url := url
-		go func() {
-			defer wg.Done()
-			result, err := getFeed(url)
-			errs <- err
-			results <- result
-		}()
-	}
-	wg.Wait()
-	close(results)
-	close(errs)
 
 	var feedItems []FeedItem
-	for result := range results {
-		if result == nil {
+	for _, feed := range getFeeds(getURLs(f)) {
+		if feed == nil {
 			continue
 		}
-		newFeedItem := newFeedItemCreator(result)
+		newFeedItem := newFeedItemCreator(feed)
 
-		for _, item := range result.Channel.Items {
+		for _, item := range feed.Channel.Items {
 			feedItem, err := newFeedItem(item)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, err.Error())
@@ -161,12 +136,40 @@ func main() {
 	}
 	w.Flush()
 
-	for err := range errs {
-		if err == nil {
+}
+
+func getURLs(r io.Reader) []string {
+	scanner := bufio.NewScanner(r)
+	var urls []string
+	for scanner.Scan() {
+		url := scanner.Text()
+		if strings.HasPrefix(url, "#") {
+			// Commented out url
 			continue
 		}
-		fmt.Fprintf(os.Stderr, err.Error())
+		urls = append(urls, url)
 	}
+	return urls
+}
+
+func getFeeds(urls []string) []*Feed {
+	var wg sync.WaitGroup
+	wg.Add(len(urls))
+	results := make([]*Feed, len(urls))
+	for i, url := range urls {
+		url := url
+		i := i
+		go func() {
+			defer wg.Done()
+			result, err := getFeed(url)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, err.Error())
+			}
+			results[i] = result
+		}()
+	}
+	wg.Wait()
+	return results
 }
 
 func filterByAge(maxAge time.Duration, feedItems []FeedItem) []FeedItem {

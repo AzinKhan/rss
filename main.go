@@ -86,7 +86,12 @@ func main() {
 	scanner := bufio.NewScanner(f)
 	var urls []string
 	for scanner.Scan() {
-		urls = append(urls, scanner.Text())
+		url := scanner.Text()
+		if strings.HasPrefix(url, "#") {
+			// Commented out url
+			continue
+		}
+		urls = append(urls, url)
 	}
 
 	var wg sync.WaitGroup

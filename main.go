@@ -104,24 +104,8 @@ func main() {
 		return
 	}
 
-	var feedItems []FeedItem
-	for _, feed := range getFeeds(getURLs(f)) {
-		if feed == nil {
-			continue
-		}
-		newFeedItem := newFeedItemCreator(feed)
-
-		for _, item := range feed.Channel.Items {
-			feedItem, err := newFeedItem(item)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, err.Error())
-				continue
-			}
-			feedItems = append(feedItems, feedItem)
-		}
-	}
-
-	feedItems = deduplicate(filterByAge(maxAge, feedItems))
+	feeds := getFeeds(getURLs(f))
+	feedItems := deduplicate(filterByAge(maxAge, getFeedItems(feeds)))
 
 	switch displayMode {
 	case DisplayModeReverseChronological:
@@ -135,7 +119,25 @@ func main() {
 		fmt.Fprintf(w, item.Format())
 	}
 	w.Flush()
+}
 
+func getFeedItems(feeds []*Feed) []FeedItem {
+	var feedItems []FeedItem
+	for _, feed := range feeds {
+		if feed == nil {
+			continue
+		}
+		newFeedItem := newFeedItemCreator(feed)
+		for _, item := range feed.Channel.Items {
+			feedItem, err := newFeedItem(item)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, err.Error())
+				continue
+			}
+			feedItems = append(feedItems, feedItem)
+		}
+	}
+	return feedItems
 }
 
 func getURLs(r io.Reader) []string {

@@ -17,7 +17,6 @@ import (
 
 const (
 	feedsFile        = "feeds.txt"
-	maxAge           = 24 * time.Hour
 	outputTimeLayout = "2006/01/02"
 )
 
@@ -91,11 +90,12 @@ const (
 )
 
 func main() {
-	var dm int
+	var dm, maxHours int
 	flag.IntVar(&dm, "m", 0, "Display mode")
+	flag.IntVar(&maxHours, "h", 24, "Max age of items (hours)")
 	flag.Parse()
 	displayMode := DisplayMode(dm)
-
+	maxAge := time.Duration(maxHours) * time.Hour
 	f, err := os.Open(feedsFile)
 	if err != nil {
 		fmt.Println(err)
@@ -146,7 +146,7 @@ func main() {
 		}
 	}
 
-	feedItems = deduplicate(filterByAge(feedItems))
+	feedItems = deduplicate(filterByAge(maxAge, feedItems))
 
 	switch displayMode {
 	case DisplayModeReverseChronological:
@@ -169,7 +169,7 @@ func main() {
 	}
 }
 
-func filterByAge(feedItems []FeedItem) []FeedItem {
+func filterByAge(maxAge time.Duration, feedItems []FeedItem) []FeedItem {
 	result := make([]FeedItem, 0, len(feedItems))
 	for _, item := range feedItems {
 		if time.Since(item.PublishTime) > maxAge {

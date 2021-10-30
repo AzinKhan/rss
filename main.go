@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -38,7 +39,12 @@ type FeedItem struct {
 
 func (fi FeedItem) Format() string {
 	builder := strings.Builder{}
-	builder.WriteString(fmt.Sprintf("%s:\t%s", fi.PublishTime.Format(outputTimeLayout), fi.Title))
+	if !fi.PublishTime.IsZero() {
+		date := fi.PublishTime.Format(outputTimeLayout)
+		builder.WriteString(fmt.Sprintf("%s:", date))
+	}
+
+	builder.WriteString(fmt.Sprintf("\t%s", fi.Title))
 	for _, link := range fi.Links {
 		builder.WriteString(fmt.Sprintf("\t%s", link))
 	}
@@ -77,7 +83,19 @@ type Item struct {
 	Description []byte `xml:"description"`
 }
 
+type DisplayMode uint8
+
+const (
+	DisplayModeReverseChronological DisplayMode = iota
+	DisplayModeGrouped
+)
+
 func main() {
+	var dm int
+	flag.IntVar(&dm, "m", 0, "Display mode")
+	flag.Parse()
+	displayMode := DisplayMode(dm)
+
 	f, err := os.Open(feedsFile)
 	if err != nil {
 		fmt.Println(err)
@@ -128,17 +146,17 @@ func main() {
 		}
 	}
 
-	feedItems = deduplicate(feedItems)
+	feedItems = deduplicate(filterByAge(feedItems))
 
-	sort.Slice(feedItems, func(i, j int) bool {
-		return feedItems[i].PublishTime.After(feedItems[j].PublishTime)
-	})
+	switch displayMode {
+	case DisplayModeReverseChronological:
+		feedItems = reverseChronological(feedItems)
+	case DisplayModeGrouped:
+		feedItems = grouped(feedItems)
+	}
 
 	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
 	for _, item := range feedItems {
-		if time.Since(item.PublishTime) > maxAge {
-			continue
-		}
 		fmt.Fprintf(w, item.Format())
 	}
 	w.Flush()
@@ -149,6 +167,48 @@ func main() {
 		}
 		fmt.Fprintf(os.Stderr, err.Error())
 	}
+}
+
+func filterByAge(feedItems []FeedItem) []FeedItem {
+	result := make([]FeedItem, 0, len(feedItems))
+	for _, item := range feedItems {
+		if time.Since(item.PublishTime) > maxAge {
+			continue
+		}
+		result = append(result, item)
+
+	}
+	return result
+}
+
+func reverseChronological(feedItems []FeedItem) []FeedItem {
+	sort.Slice(feedItems, func(i, j int) bool {
+		return feedItems[i].PublishTime.After(feedItems[j].PublishTime)
+	})
+	return feedItems
+}
+
+func grouped(feedItems []FeedItem) []FeedItem {
+	itemsByFeed := make(map[string][]FeedItem)
+	for _, item := range feedItems {
+		existing := itemsByFeed[item.Feed]
+		existing = append(existing, item)
+		itemsByFeed[item.Feed] = existing
+	}
+
+	result := make([]FeedItem, 0, len(feedItems))
+	for feed, items := range itemsByFeed {
+		if len(items) == 0 {
+			continue
+		}
+		// Create a title-only item for the feed itself
+		result = append(result, FeedItem{})
+		result = append(result, FeedItem{Title: feed})
+		for _, item := range items {
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 func getFeed(url string) (*Feed, error) {

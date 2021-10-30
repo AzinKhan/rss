@@ -21,9 +21,18 @@ const (
 var (
 	dateFormats = []string{time.RFC1123, time.RFC1123Z}
 	client      = http.DefaultClient
+	paywalls    = []string{
+		"https://www.ft.com",
+		"https://rss.nytimes.com",
+	}
 )
 
 type Feed struct {
+	URL string
+	RSS
+}
+
+type RSS struct {
 	XMLName xml.Name `xml:"rss"`
 	Channel Channel  `xml:"channel"`
 }
@@ -39,12 +48,14 @@ type Channel struct {
 }
 
 type Item struct {
-	XMLName     xml.Name `xml:"item"`
-	Title       string   `xml:"title"`
-	Link        string   `xml:"link"`
-	PubDate     string   `xml:"pubDate"`
-	GUID        string   `xml:"guid"`
-	Description []byte   `xml:"description"`
+	XMLName xml.Name `xml:"item"`
+	Title   string   `xml:"title"`
+	Link    string   `xml:"link"`
+	PubDate string   `xml:"pubDate"`
+	GUID    string   `xml:"guid"`
+	// Comments provide a link to a dedicated comments page e.g. hackernews
+	Comments    string `xml:"comments"`
+	Description []byte `xml:"description"`
 }
 
 func main() {
@@ -94,18 +105,6 @@ func main() {
 	w.Flush()
 }
 
-func formatFeed(feed *Feed) string {
-	builder := strings.Builder{}
-	for _, item := range feed.Channel.Items {
-		builder.WriteString(formatItem(item))
-	}
-	return builder.String()
-}
-
-func formatItem(item Item) string {
-	return fmt.Sprintf("%s:\t%s\t%s\n", formatDate(item.PubDate), item.Title, item.Link)
-}
-
 func getFeed(url string) (*Feed, error) {
 	resp, err := client.Get(url)
 	if err != nil {
@@ -115,17 +114,67 @@ func getFeed(url string) (*Feed, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error reading body from %s: %w", url, err)
 	}
-	var feed Feed
-	err = xml.Unmarshal(body, &feed)
+	var rss RSS
+	err = xml.Unmarshal(body, &rss)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling body from %s: %w", url, err)
 	}
-	return &feed, nil
+	return &Feed{url, rss}, nil
 }
 
-// formatDate attempts to put the rawDate into one of the supported formats. If
-// that cannot be done, then the original raw string is returned.
-func formatDate(rawDate string) string {
+func formatFeed(feed *Feed) string {
+	builder := strings.Builder{}
+	var hasPaywall bool
+	for _, pw := range paywalls {
+		if strings.HasPrefix(feed.URL, pw) {
+			hasPaywall = true
+			break
+		}
+	}
+
+	formatLink := linkFormatter(hasPaywall)
+
+	var writtenTitle bool
+	for _, item := range feed.Channel.Items {
+		if !checkAge(item) {
+			continue
+		}
+		if !writtenTitle {
+			builder.WriteString(fmt.Sprintf("\n%s\n", feed.Channel.Title))
+			writtenTitle = true
+		}
+		builder.WriteString(formatItem(item, formatLink))
+	}
+	return builder.String()
+}
+
+func checkAge(item Item) bool {
+	itemDate, err := parseDate(item.PubDate)
+	if err != nil {
+		return true
+	}
+	return time.Since(itemDate) < maxAge
+}
+
+func linkFormatter(hasPaywall bool) func(Item) string {
+	return func(item Item) string {
+		link := item.Link
+		if link == "" {
+			link = item.GUID
+		}
+		// Add archive to paywalled links
+		if hasPaywall {
+			return fmt.Sprintf("https://archive.is/%s", link)
+		}
+		return link
+	}
+}
+
+func formatItem(item Item, formatLink func(Item) string) string {
+	return fmt.Sprintf("%s:\t%s\t%s\t%s\n", formatDate(item.PubDate), item.Title, formatLink(item), item.Comments)
+}
+
+func parseDate(rawDate string) (time.Time, error) {
 	var t time.Time
 	var err error
 	for _, format := range dateFormats {
@@ -134,6 +183,13 @@ func formatDate(rawDate string) string {
 			break
 		}
 	}
+	return t, err
+}
+
+// formatDate attempts to put the rawDate into one of the supported formats. If
+// that cannot be done, then the original raw string is returned.
+func formatDate(rawDate string) string {
+	t, err := parseDate(rawDate)
 	if err != nil {
 		return rawDate
 	}

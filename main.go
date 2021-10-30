@@ -68,9 +68,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 			result, err := getFeed(url)
-			if err != nil {
-				errs <- err
-			}
+			errs <- err
 			results <- result
 		}()
 	}
@@ -87,7 +85,6 @@ func main() {
 	}
 	w.Flush()
 
-	fmt.Fprintf(w, "\nERRORS\n")
 	for err := range errs {
 		if err == nil {
 			continue

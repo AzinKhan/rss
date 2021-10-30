@@ -15,8 +15,9 @@ import (
 )
 
 const (
-	feedsFile = "feeds.txt"
-	maxAge    = 24 * time.Hour
+	feedsFile        = "feeds.txt"
+	maxAge           = 24 * time.Hour
+	outputTimeLayout = "2006/01/02"
 )
 
 var (
@@ -33,6 +34,16 @@ type FeedItem struct {
 	PublishTime time.Time
 	Links       []string
 	Feed        string
+}
+
+func (fi FeedItem) Format() string {
+	builder := strings.Builder{}
+	builder.WriteString(fmt.Sprintf("%s:\t%s", fi.PublishTime.Format(outputTimeLayout), fi.Title))
+	for _, link := range fi.Links {
+		builder.WriteString(fmt.Sprintf("\t%s", link))
+	}
+	builder.WriteString("\n")
+	return builder.String()
 }
 
 type Feed struct {
@@ -122,9 +133,8 @@ func main() {
 		if time.Since(item.PublishTime) > maxAge {
 			continue
 		}
-		fmt.Fprintf(w, formatItem(item))
+		fmt.Fprintf(w, item.Format())
 	}
-
 	w.Flush()
 
 	for err := range errs {
@@ -173,17 +183,6 @@ func linkFormatter(feed *Feed) func(Item) string {
 	}
 }
 
-func formatItem(item FeedItem) string {
-	builder := strings.Builder{}
-	builder.WriteString(fmt.Sprintf("%s:\t%s", formatDate(item.PublishTime), item.Title))
-	for _, link := range item.Links {
-		builder.WriteString(fmt.Sprintf("\t%s", link))
-	}
-	builder.WriteString("\n")
-	return builder.String()
-
-}
-
 func newFeedItemCreator(feed *Feed) func(Item) (FeedItem, error) {
 	return func(item Item) (FeedItem, error) {
 		formatLink := linkFormatter(feed)
@@ -214,11 +213,6 @@ func parseDate(rawDate string) (time.Time, error) {
 		}
 	}
 	return t, err
-}
-
-func formatDate(t time.Time) string {
-	y, m, d := t.Date()
-	return fmt.Sprintf("%d/%02d/%02d", y, m, d)
 }
 
 func deduplicate(feedItems []FeedItem) []FeedItem {

@@ -90,6 +90,28 @@ const (
 	DisplayModeGrouped
 )
 
+type Filter func(FeedItem) bool
+
+func deduplicate() Filter {
+	urls := make(map[string]struct{})
+	return func(item FeedItem) bool {
+		for _, link := range item.Links {
+			_, found := urls[link]
+			if found {
+				return false
+			}
+			urls[link] = struct{}{}
+		}
+		return true
+	}
+}
+
+func oldestItem(maxAge time.Duration) Filter {
+	return func(item FeedItem) bool {
+		return time.Since(item.PublishTime) <= maxAge
+	}
+}
+
 func main() {
 	var dm, maxHours int
 	flag.IntVar(&dm, "m", 0, "Display mode")
@@ -105,7 +127,7 @@ func main() {
 	}
 
 	feeds := getFeeds(getURLs(f))
-	feedItems := deduplicate(filterByAge(maxAge, getFeedItems(feeds)))
+	feedItems := getFeedItems(feeds, oldestItem(maxAge), deduplicate())
 
 	switch displayMode {
 	case DisplayModeReverseChronological:
@@ -121,18 +143,24 @@ func main() {
 	w.Flush()
 }
 
-func getFeedItems(feeds []*Feed) []FeedItem {
+func getFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {
 	var feedItems []FeedItem
 	for _, feed := range feeds {
 		if feed == nil {
 			continue
 		}
 		newFeedItem := newFeedItemCreator(feed)
+	itemloop:
 		for _, item := range feed.Channel.Items {
 			feedItem, err := newFeedItem(item)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, err.Error())
 				continue
+			}
+			for _, filter := range filters {
+				if !filter(feedItem) {
+					continue itemloop
+				}
 			}
 			feedItems = append(feedItems, feedItem)
 		}
@@ -172,18 +200,6 @@ func getFeeds(urls []string) []*Feed {
 	}
 	wg.Wait()
 	return results
-}
-
-func filterByAge(maxAge time.Duration, feedItems []FeedItem) []FeedItem {
-	result := make([]FeedItem, 0, len(feedItems))
-	for _, item := range feedItems {
-		if time.Since(item.PublishTime) > maxAge {
-			continue
-		}
-		result = append(result, item)
-
-	}
-	return result
 }
 
 func reverseChronological(feedItems []FeedItem) []FeedItem {
@@ -284,26 +300,4 @@ func parseDate(rawDate string) (time.Time, error) {
 		}
 	}
 	return t, err
-}
-
-func deduplicate(feedItems []FeedItem) []FeedItem {
-	urls := make(map[string]struct{})
-	result := make([]FeedItem, 0, len(feedItems))
-
-mainloop:
-	for _, item := range feedItems {
-		// Skip the item if its links are already found
-		var found bool
-		for _, link := range item.Links {
-			_, found = urls[link]
-			if found {
-				continue mainloop
-			}
-		}
-		result = append(result, item)
-		for _, link := range item.Links {
-			urls[link] = struct{}{}
-		}
-	}
-	return result
 }

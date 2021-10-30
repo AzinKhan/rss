@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
@@ -12,15 +13,12 @@ import (
 	"time"
 )
 
+const (
+	feedsFile = "feeds.txt"
+	maxAge    = 24 * time.Hour
+)
+
 var (
-	urls = []string{
-		"https://danluu.com/atom",
-		"http://syndication.thedailywtf.com/TheDailyWtf",
-		"https://www.ft.com/world?format=rss",
-		//"https://codeinthehole.com/index.xml",
-		"https://www.schneier.com/feed/",
-		//"https://xkcd.com/atom.xml",
-	}
 	dateFormats = []string{time.RFC1123, time.RFC1123Z}
 	client      = http.DefaultClient
 )
@@ -50,6 +48,17 @@ type Item struct {
 }
 
 func main() {
+	f, err := os.Open(feedsFile)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	scanner := bufio.NewScanner(f)
+	var urls []string
+	for scanner.Scan() {
+		urls = append(urls, scanner.Text())
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(len(urls))
 	results := make(chan *Feed, len(urls))

@@ -276,6 +276,7 @@ func linkFormatter(feed *Feed) func(Item) string {
 }
 
 func newFeedItemCreator(feed *Feed) func(Item) (FeedItem, error) {
+	parseDate := newDateParser(time.Now())
 	return func(item Item) (FeedItem, error) {
 		formatLink := linkFormatter(feed)
 		links := []string{formatLink(item)}
@@ -295,16 +296,21 @@ func newFeedItemCreator(feed *Feed) func(Item) (FeedItem, error) {
 	}
 }
 
-func parseDate(rawDate string) (time.Time, error) {
-	var t time.Time
-	var err error
-	for _, format := range dateFormats {
-		t, err = time.Parse(format, rawDate)
-		if err == nil {
-			break
+func newDateParser(t time.Time) func(string) (time.Time, error) {
+	return func(rawDate string) (time.Time, error) {
+		if rawDate == "" {
+			return t, nil
 		}
+		var t time.Time
+		var err error
+		for _, format := range dateFormats {
+			t, err = time.Parse(format, rawDate)
+			if err == nil {
+				break
+			}
+		}
+		return t, err
 	}
-	return t, err
 }
 
 func colourize(text string, c colour) string {

@@ -17,38 +17,49 @@ const (
 )
 
 func main() {
-	var dm, maxHours int
-	var edit bool
-	flag.IntVar(&dm, "m", 0, "Display mode")
-	flag.IntVar(&maxHours, "h", 24, "Max age of items (hours)")
-	flag.BoolVar(&edit, "e", false, "Edit the feeds list")
-	flag.Parse()
-	displayMode := rss.ReverseChronological
-	if dm == 1 {
-		displayMode = rss.Grouped
+
+	if len(os.Args) < 2 {
+		fmt.Println("Expected a subcommand")
+		os.Exit(1)
 	}
-	maxAge := time.Duration(maxHours) * time.Hour
 
 	homedir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println(err)
-		return
+		fmt.Fprintf(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 
 	feedsFilepath := path.Join(homedir, feedsFile)
 
-	if edit {
+	var displayMode rss.DisplayMode
+	command := os.Args[1]
+	switch command {
+	case "edit":
 		err := editFeedsFile(feedsFilepath)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintf(os.Stderr, err.Error())
+			os.Exit(1)
 		}
 		return
+	case "feed":
+		displayMode = rss.ReverseChronological
+	case "group":
+		displayMode = rss.Grouped
+	default:
+		fmt.Printf("Unknown command %s\n", command)
+		os.Exit(1)
 	}
+
+	var maxHours int
+	flag.IntVar(&maxHours, "h", 24, "Max age of items (hours)")
+	flag.Parse()
+
+	maxAge := time.Duration(maxHours) * time.Hour
 
 	f, err := os.Open(feedsFilepath)
 	if err != nil {
-		fmt.Println(err)
-		return
+		fmt.Fprintf(os.Stderr, err.Error())
+		os.Exit(1)
 	}
 	defer f.Close()
 

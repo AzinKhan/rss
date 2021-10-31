@@ -97,5 +97,6 @@ func display(feedItems []rss.FeedItem, mode rss.DisplayMode) error {
 	if err != nil {
 		return err
 	}
+	pipeW.Close()
 	return cmd.Run()
 }

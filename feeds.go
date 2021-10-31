@@ -78,23 +78,44 @@ type Item struct {
 	Description []byte `xml:"description"`
 }
 
-type DisplayMode uint8
+type DisplayMode func([]FeedItem) []FeedItem
 
-const (
-	DisplayModeReverseChronological DisplayMode = iota
-	DisplayModeGrouped
-)
-
-// Display returns feed items for Display. There may be a different number of
-// feed items returned from those passed in.
-func Display(feedItems []FeedItem, mode DisplayMode) []FeedItem {
-	switch mode {
-	case DisplayModeReverseChronological:
-		return reverseChronological(feedItems)
-	case DisplayModeGrouped:
-		return grouped(feedItems)
-	}
+func ReverseChronological(feedItems []FeedItem) []FeedItem {
+	sort.Slice(feedItems, func(i, j int) bool {
+		return feedItems[i].PublishTime.After(feedItems[j].PublishTime)
+	})
 	return feedItems
+}
+
+func Grouped(feedItems []FeedItem) []FeedItem {
+	itemsByFeed := make(map[string][]FeedItem)
+	for _, item := range feedItems {
+		existing := itemsByFeed[item.Feed]
+		existing = append(existing, item)
+		itemsByFeed[item.Feed] = existing
+	}
+
+	result := make([]FeedItem, 0, len(feedItems))
+	for feed, items := range itemsByFeed {
+		if len(items) == 0 {
+			continue
+		}
+		// Create a title-only item for the feed itself
+		result = append(result, FeedItem{})
+		result = append(result, FeedItem{Title: feed})
+		for _, item := range ReverseChronological(items) {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+// Display writes the feed items to the given writer in the provided display
+// mode.
+func Display(w io.Writer, feedItems []FeedItem, displayMode DisplayMode) {
+	for _, item := range displayMode(feedItems) {
+		fmt.Fprintf(w, item.Format())
+	}
 }
 
 type Filter func(FeedItem) bool
@@ -185,36 +206,6 @@ func GetFeeds(urls []string) []*Feed {
 	}
 	wg.Wait()
 	return results
-}
-
-func reverseChronological(feedItems []FeedItem) []FeedItem {
-	sort.Slice(feedItems, func(i, j int) bool {
-		return feedItems[i].PublishTime.After(feedItems[j].PublishTime)
-	})
-	return feedItems
-}
-
-func grouped(feedItems []FeedItem) []FeedItem {
-	itemsByFeed := make(map[string][]FeedItem)
-	for _, item := range feedItems {
-		existing := itemsByFeed[item.Feed]
-		existing = append(existing, item)
-		itemsByFeed[item.Feed] = existing
-	}
-
-	result := make([]FeedItem, 0, len(feedItems))
-	for feed, items := range itemsByFeed {
-		if len(items) == 0 {
-			continue
-		}
-		// Create a title-only item for the feed itself
-		result = append(result, FeedItem{})
-		result = append(result, FeedItem{Title: feed})
-		for _, item := range reverseChronological(items) {
-			result = append(result, item)
-		}
-	}
-	return result
 }
 
 func getFeed(url string) (*Feed, error) {

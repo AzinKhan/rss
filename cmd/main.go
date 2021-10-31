@@ -19,7 +19,13 @@ func main() {
 	flag.IntVar(&dm, "m", 0, "Display mode")
 	flag.IntVar(&maxHours, "h", 24, "Max age of items (hours)")
 	flag.Parse()
-	displayMode := rss.DisplayMode(dm)
+	var displayMode rss.DisplayMode
+	switch dm {
+	case 0:
+		displayMode = rss.ReverseChronological
+	case 1:
+		displayMode = rss.Grouped
+	}
 	maxAge := time.Duration(maxHours) * time.Hour
 
 	f, err := os.Open(feedsFile)
@@ -32,8 +38,6 @@ func main() {
 	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate())
 
 	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
-	for _, item := range rss.Display(feedItems, displayMode) {
-		fmt.Fprintf(w, item.Format())
-	}
+	rss.Display(w, feedItems, displayMode)
 	w.Flush()
 }

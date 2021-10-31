@@ -66,9 +66,11 @@ func main() {
 	feeds := rss.GetFeeds(rss.GetURLs(f))
 	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate())
 
-	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
-	rss.Display(w, feedItems, displayMode)
-	w.Flush()
+	err = display(feedItems, displayMode)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+		os.Exit(1)
+	}
 }
 
 func editFeedsFile(filepath string) error {
@@ -76,5 +78,24 @@ func editFeedsFile(filepath string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
+	return cmd.Run()
+}
+
+func display(feedItems []rss.FeedItem, mode rss.DisplayMode) error {
+	// Pipe output to less for paging
+	cmd := exec.Command("less")
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	pipeW, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+
+	w := tabwriter.NewWriter(pipeW, 1, 1, 1, ' ', 0)
+	rss.Display(w, feedItems, mode)
+	err = w.Flush()
+	if err != nil {
+		return err
+	}
 	return cmd.Run()
 }

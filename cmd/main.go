@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	feedsFile = ".rss/feeds.txt"
+	feedsFile = ".rss/urls.txt"
 )
 
 func main() {

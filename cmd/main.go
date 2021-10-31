@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	feedsFile = ".rss/feeds.txt"
+	feedsFolder = ".rss/feeds"
+	feedsFile   = ".rss/urls.txt"
 )
 
 func main() {
@@ -29,6 +30,7 @@ func main() {
 	}
 
 	feedsFilepath := path.Join(homedir, feedsFile)
+	feedsFolderPath := path.Join(homedir, feedsFolder)
 
 	var displayMode rss.DisplayMode
 	command := os.Args[1]
@@ -50,19 +52,36 @@ func main() {
 	}
 
 	var maxHours int
+	var refresh bool
 	args := flag.NewFlagSet("display", flag.ExitOnError)
 	args.IntVar(&maxHours, "h", 24, "Max age of items (hours)")
+	args.BoolVar(&refresh, "r", false, "Refresh feeds")
 	args.Parse(os.Args[2:])
 	maxAge := time.Duration(maxHours) * time.Hour
 
-	f, err := os.Open(feedsFilepath)
+	var feeds []*rss.Feed
+	if refresh {
+		f, err := os.Open(feedsFilepath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+		defer f.Close()
+		feeds = rss.RefreshFeeds(rss.GetURLs(f))
+		for _, feed := range feeds {
+			err = rss.Store(feed, feedsFolderPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, err.Error())
+				os.Exit(1)
+			}
+		}
+	}
+
+	feeds, err = rss.LoadAll(feedsFolderPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
 	}
-	defer f.Close()
-
-	feeds := rss.RefreshFeeds(rss.GetURLs(f))
 	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate())
 
 	now := time.Now()

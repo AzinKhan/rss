@@ -30,6 +30,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	defer f.Close()
 
 	feeds := rss.GetFeeds(rss.GetURLs(f))
 	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate())

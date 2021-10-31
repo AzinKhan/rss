@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"text/tabwriter"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 )
 
 const (
-	feedsFile = "feeds.txt"
+	feedsFile = ".rss/feeds.txt"
 )
 
 func main() {
@@ -28,15 +29,23 @@ func main() {
 	}
 	maxAge := time.Duration(maxHours) * time.Hour
 
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	feedsFilepath := path.Join(homedir, feedsFile)
+
 	if edit {
-		err := editFeedsFile(feedsFile)
+		err := editFeedsFile(feedsFilepath)
 		if err != nil {
 			fmt.Println(err)
 		}
 		return
 	}
 
-	f, err := os.Open(feedsFile)
+	f, err := os.Open(feedsFilepath)
 	if err != nil {
 		fmt.Println(err)
 		return

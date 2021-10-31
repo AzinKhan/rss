@@ -19,11 +19,8 @@ func main() {
 	flag.IntVar(&dm, "m", 0, "Display mode")
 	flag.IntVar(&maxHours, "h", 24, "Max age of items (hours)")
 	flag.Parse()
-	var displayMode rss.DisplayMode
-	switch dm {
-	case 0:
-		displayMode = rss.ReverseChronological
-	case 1:
+	displayMode := rss.ReverseChronological
+	if dm == 1 {
 		displayMode = rss.Grouped
 	}
 	maxAge := time.Duration(maxHours) * time.Hour

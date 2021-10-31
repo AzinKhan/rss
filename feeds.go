@@ -215,9 +215,9 @@ func GetURLs(r io.Reader) []string {
 	return urls
 }
 
-// GetFeeds makes requests to the hosts at the given URLs and returns a *Feed
+// RefreshFeeds makes requests to the hosts at the given URLs and returns a *Feed
 // for each.
-func GetFeeds(urls []string) []*Feed {
+func RefreshFeeds(urls []string) []*Feed {
 	var wg sync.WaitGroup
 	wg.Add(len(urls))
 	results := make([]*Feed, len(urls))

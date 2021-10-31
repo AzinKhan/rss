@@ -62,7 +62,7 @@ func main() {
 	}
 	defer f.Close()
 
-	feeds := rss.GetFeeds(rss.GetURLs(f))
+	feeds := rss.RefreshFeeds(rss.GetURLs(f))
 	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate())
 
 	now := time.Now()

@@ -51,9 +51,9 @@ func main() {
 	}
 
 	var maxHours int
-	flag.IntVar(&maxHours, "h", 24, "Max age of items (hours)")
-	flag.Parse()
-
+	args := flag.NewFlagSet("display", flag.ExitOnError)
+	args.IntVar(&maxHours, "h", 24, "Max age of items (hours)")
+	args.Parse(os.Args[2:])
 	maxAge := time.Duration(maxHours) * time.Hour
 
 	f, err := os.Open(feedsFilepath)

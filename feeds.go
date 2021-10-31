@@ -14,7 +14,21 @@ import (
 	"time"
 )
 
-const outputTimeLayout = "2006/01/02"
+type colour string
+
+const (
+	outputTimeLayout = "2006/01/02"
+	// Note these colour codes are not supported on windows.
+	reset  colour = "\033[0m"
+	red    colour = "\033[31m"
+	green  colour = "\033[32m"
+	yellow colour = "\033[33m"
+	blue   colour = "\033[34m"
+	purple colour = "\033[35m"
+	cyan   colour = "\033[36m"
+	gray   colour = "\033[37m"
+	white  colour = "\033[97m"
+)
 
 var (
 	dateFormats = []string{time.RFC1123, time.RFC1123Z}
@@ -36,12 +50,12 @@ func (fi FeedItem) Format() string {
 	builder := strings.Builder{}
 	if !fi.PublishTime.IsZero() {
 		date := fi.PublishTime.Format(outputTimeLayout)
-		builder.WriteString(fmt.Sprintf("%s:", date))
+		builder.WriteString(fmt.Sprintf("%s:", colourize(date, yellow)))
 	}
 
 	builder.WriteString(fmt.Sprintf("\t%s", fi.Title))
 	for _, link := range fi.Links {
-		builder.WriteString(fmt.Sprintf("\t%s", link))
+		builder.WriteString(fmt.Sprintf("\t%s", colourize(link, blue)))
 	}
 	builder.WriteString("\n")
 	return builder.String()
@@ -102,7 +116,7 @@ func Grouped(feedItems []FeedItem) []FeedItem {
 		}
 		// Create a title-only item for the feed itself
 		result = append(result, FeedItem{})
-		result = append(result, FeedItem{Title: feed})
+		result = append(result, FeedItem{Title: colourize(feed, green)})
 		for _, item := range ReverseChronological(items) {
 			result = append(result, item)
 		}
@@ -276,4 +290,8 @@ func parseDate(rawDate string) (time.Time, error) {
 		}
 	}
 	return t, err
+}
+
+func colourize(text string, c colour) string {
+	return fmt.Sprintf("%s%s%s", c, text, reset)
 }

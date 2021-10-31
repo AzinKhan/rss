@@ -17,7 +17,6 @@ const (
 )
 
 func main() {
-
 	if len(os.Args) < 2 {
 		fmt.Println("Expected a subcommand")
 		os.Exit(1)
@@ -66,7 +65,8 @@ func main() {
 	feeds := rss.GetFeeds(rss.GetURLs(f))
 	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate())
 
-	err = display(feedItems, displayMode)
+	now := time.Now()
+	err = display(feedItems, displayMode, rss.ColourAfter(now.Add(-2*time.Hour)))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
@@ -81,7 +81,7 @@ func editFeedsFile(filepath string) error {
 	return cmd.Run()
 }
 
-func display(feedItems []rss.FeedItem, mode rss.DisplayMode) error {
+func display(feedItems []rss.FeedItem, mode rss.DisplayMode, opts ...rss.DisplayOption) error {
 	// Pipe output to less for paging
 	cmd := exec.Command("less")
 	cmd.Stderr = os.Stderr
@@ -92,7 +92,7 @@ func display(feedItems []rss.FeedItem, mode rss.DisplayMode) error {
 	}
 
 	w := tabwriter.NewWriter(pipeW, 1, 1, 1, ' ', 0)
-	rss.Display(w, feedItems, mode)
+	rss.Display(w, feedItems, mode, opts...)
 	err = w.Flush()
 	if err != nil {
 		return err

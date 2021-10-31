@@ -94,6 +94,17 @@ type Item struct {
 
 type DisplayMode func([]FeedItem) []FeedItem
 
+type DisplayOption func(FeedItem) FeedItem
+
+func ColourAfter(t time.Time) DisplayOption {
+	return func(item FeedItem) FeedItem {
+		if item.PublishTime.After(t) {
+			item.Title = colourize(item.Title, cyan)
+		}
+		return item
+	}
+}
+
 func ReverseChronological(feedItems []FeedItem) []FeedItem {
 	sort.Slice(feedItems, func(i, j int) bool {
 		return feedItems[i].PublishTime.After(feedItems[j].PublishTime)
@@ -126,9 +137,13 @@ func Grouped(feedItems []FeedItem) []FeedItem {
 
 // Display writes the feed items to the given writer in the provided display
 // mode.
-func Display(w io.Writer, feedItems []FeedItem, displayMode DisplayMode) {
+func Display(w io.Writer, feedItems []FeedItem, displayMode DisplayMode, opts ...DisplayOption) {
 	for _, item := range displayMode(feedItems) {
+		for _, o := range opts {
+			item = o(item)
+		}
 		fmt.Fprintf(w, item.Format())
+
 	}
 }
 

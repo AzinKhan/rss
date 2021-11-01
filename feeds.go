@@ -293,8 +293,8 @@ func linkFormatter(feed *Feed) func(Item) string {
 
 func newFeedItemCreator(feed *Feed) func(Item) (FeedItem, error) {
 	parseDate := newDateParser(time.Now())
+	formatLink := linkFormatter(feed)
 	return func(item Item) (FeedItem, error) {
-		formatLink := linkFormatter(feed)
 		links := []string{formatLink(item)}
 		if item.Comments != "" {
 			links = append(links, item.Comments)

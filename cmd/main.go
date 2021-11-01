@@ -49,9 +49,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	var maxHours int
+	var maxHours, maxItems int
 	args := flag.NewFlagSet("display", flag.ExitOnError)
-	args.IntVar(&maxHours, "h", 24, "Max age of items (hours)")
+	args.IntVar(&maxHours, "max", 24, "Max age of items (hours)")
+	args.IntVar(&maxItems, "limit", 0, "Max items per channel")
 	args.Parse(os.Args[2:])
 	maxAge := time.Duration(maxHours) * time.Hour
 
@@ -63,7 +64,7 @@ func main() {
 	defer f.Close()
 
 	feeds := rss.RefreshFeeds(rss.GetURLs(f))
-	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate())
+	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate(), rss.MaxItemsPerChannel(maxItems))
 
 	now := time.Now()
 	err = display(feedItems, displayMode, rss.ColourAfter(now.Add(-2*time.Hour)))

@@ -44,6 +44,7 @@ type FeedItem struct {
 	PublishTime time.Time
 	Links       []string
 	Feed        string
+	Channel     string
 }
 
 func (fi FeedItem) Format() string {
@@ -172,6 +173,21 @@ func OldestItem(maxAge time.Duration) Filter {
 	}
 }
 
+// MaxItemsPerChannel puts a limit on the number of items per channel. Passing zero in
+// results in no limit
+func MaxItemsPerChannel(n int) Filter {
+	if n == 0 {
+		return func(FeedItem) bool { return true }
+	}
+	counts := make(map[string]int)
+	return func(item FeedItem) bool {
+		channelCount := counts[item.Channel]
+		channelCount++
+		counts[item.Channel] = channelCount
+		return channelCount <= n
+	}
+}
+
 // GetFeedItems unpacks the items within the given feeds, applying filters if
 // given.
 func GetFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {
@@ -292,6 +308,7 @@ func newFeedItemCreator(feed *Feed) func(Item) (FeedItem, error) {
 			Links:       links,
 			PublishTime: pubTime,
 			Feed:        feed.Channel.Title,
+			Channel:     feed.Channel.Title,
 		}, nil
 	}
 }

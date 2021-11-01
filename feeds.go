@@ -101,7 +101,10 @@ func ColourAfter(t time.Time) DisplayOption {
 	return func(item FeedItem) FeedItem {
 		if item.PublishTime.After(t) {
 			item.Title = colourize(item.Title, cyan)
+		} else {
+			item.Title = colourize(item.Title, white)
 		}
+
 		return item
 	}
 }
@@ -144,7 +147,6 @@ func Display(w io.Writer, feedItems []FeedItem, displayMode DisplayMode, opts ..
 			item = o(item)
 		}
 		fmt.Fprintf(w, item.Format())
-
 	}
 }
 

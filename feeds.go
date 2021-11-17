@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -285,6 +286,14 @@ func linkFormatter(feed *Feed) func(Item) string {
 		if link == "" {
 			link = item.GUID
 		}
+		// Clear query params since they're usually just for tracking
+		u, err := url.Parse(link)
+		if err != nil {
+			return err.Error()
+		}
+		u.RawQuery = ""
+
+		link = u.String()
 		// Add archive to paywalled links
 		if hasPaywall {
 			return fmt.Sprintf("https://archive.is/%s", link)

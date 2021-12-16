@@ -36,7 +36,6 @@ var (
 	client      = http.DefaultClient
 	paywalls    = []string{
 		"https://www.ft.com",
-		"https://rss.nytimes.com",
 	}
 )
 

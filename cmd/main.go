@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"strconv"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -29,8 +31,16 @@ func main() {
 	}
 
 	feedsFilepath := path.Join(homedir, feedsFile)
+	f, err := os.Open(feedsFilepath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+	defer f.Close()
+	urls := rss.GetURLs(f)
 
 	var displayMode rss.DisplayMode
+
 	command := os.Args[1]
 	switch command {
 	case "edit":
@@ -44,6 +54,9 @@ func main() {
 		displayMode = rss.ReverseChronological
 	case "group":
 		displayMode = rss.Grouped
+	case "select":
+		urls = []string{selectSingleFeed(urls)}
+		displayMode = rss.ReverseChronological
 	default:
 		fmt.Printf("Unknown command %s\n", command)
 		os.Exit(1)
@@ -56,14 +69,7 @@ func main() {
 	args.Parse(os.Args[2:])
 	maxAge := time.Duration(maxHours) * time.Hour
 
-	f, err := os.Open(feedsFilepath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-		os.Exit(1)
-	}
-	defer f.Close()
-
-	feeds := rss.RefreshFeeds(rss.GetURLs(f))
+	feeds := rss.RefreshFeeds(urls)
 	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate(), rss.MaxItemsPerChannel(maxItems))
 
 	now := time.Now()
@@ -72,6 +78,41 @@ func main() {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
 	}
+}
+
+func selectSingleFeed(urls []string) string {
+	n := len(urls)
+	numPlaces := n % 10
+	printSelection(urls)
+	var i int
+	for {
+
+		b := make([]byte, 1+numPlaces)
+		os.Stdin.Read(b)
+
+		var err error
+		i, err = strconv.Atoi(string(b))
+		if err != nil {
+			continue
+		}
+
+		if i < len(urls) {
+			break
+		}
+
+	}
+	return urls[i]
+
+}
+
+func printSelection(urls []string) {
+	var builder strings.Builder
+	for i, url := range urls {
+		builder.WriteString(fmt.Sprintf("%d:\t", i))
+		builder.WriteString(url)
+		builder.WriteString("\n")
+	}
+	fmt.Fprintf(os.Stdout, builder.String())
 }
 
 func editFeedsFile(filepath string) error {

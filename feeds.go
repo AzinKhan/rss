@@ -190,6 +190,20 @@ func MaxItemsPerChannel(n int) Filter {
 	}
 }
 
+// MaxItems enforces a limit on the total number of items in the result.
+// Passing zero in results in no limit.
+func MaxItems(n int) Filter {
+	if n == 0 {
+		return func(FeedItem) bool { return true }
+	}
+
+	count := 0
+	return func(item FeedItem) bool {
+		count++
+		return count <= n
+	}
+}
+
 // GetFeedItems unpacks the items within the given feeds, applying filters if
 // given.
 func GetFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {

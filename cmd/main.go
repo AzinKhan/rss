@@ -40,6 +40,7 @@ func main() {
 	urls := rss.GetURLs(f)
 
 	var displayMode rss.DisplayMode
+	itemFilter := rss.MaxItemsPerChannel
 
 	command := os.Args[1]
 	switch command {
@@ -52,6 +53,7 @@ func main() {
 		return
 	case "feed":
 		displayMode = rss.ReverseChronological
+		itemFilter = rss.MaxItems
 	case "group":
 		displayMode = rss.Grouped
 	case "select":
@@ -70,7 +72,7 @@ func main() {
 	maxAge := time.Duration(maxHours) * time.Hour
 
 	feeds := rss.RefreshFeeds(urls)
-	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate(), rss.MaxItemsPerChannel(maxItems))
+	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate(), itemFilter(maxItems))
 
 	now := time.Now()
 	err = display(feedItems, displayMode, rss.ColourAfter(now.Add(-2*time.Hour)))

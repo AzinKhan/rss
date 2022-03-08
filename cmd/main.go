@@ -84,7 +84,7 @@ func main() {
 
 func selectSingleFeed(urls []string) string {
 	n := len(urls)
-	numPlaces := n % 10
+	numPlaces := n / 10
 	printSelection(urls)
 	var i int
 	for {
@@ -92,13 +92,19 @@ func selectSingleFeed(urls []string) string {
 		b := make([]byte, 1+numPlaces)
 		os.Stdin.Read(b)
 
-		var err error
-		i, err = strconv.Atoi(string(b))
-		if err != nil {
+		iStr := strings.Split(string(b), "\n")
+		if len(iStr) < 1 {
 			continue
 		}
 
-		if i < len(urls) {
+		var err error
+		i, err = strconv.Atoi(iStr[0])
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		if i < n {
 			break
 		}
 

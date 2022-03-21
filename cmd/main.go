@@ -42,7 +42,15 @@ func main() {
 	var displayMode rss.DisplayMode
 	itemFilter := rss.MaxItemsPerChannel
 
+	var interactive bool
+	flag.BoolVar(&interactive, "i", false, "Enable interactive mode")
+
+	flag.Parse()
+
 	command := os.Args[1]
+	if interactive {
+		command = os.Args[2]
+	}
 	switch command {
 	case "edit":
 		err := editFeedsFile(feedsFilepath)
@@ -74,8 +82,17 @@ func main() {
 	feeds := rss.RefreshFeeds(urls)
 	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate(), itemFilter(maxItems))
 
-	now := time.Now()
-	err = display(feedItems, displayMode, rss.ColourAfter(now.Add(-2*time.Hour)))
+	if interactive {
+		browser, err := rss.NewBrowser()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+		err = interactiveDisplay(feedItems, browser, displayMode)
+	} else {
+		now := time.Now()
+		err = display(feedItems, displayMode, rss.ColourAfter(now.Add(-2*time.Hour)))
+	}
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
@@ -149,4 +166,17 @@ func display(feedItems []rss.FeedItem, mode rss.DisplayMode, opts ...rss.Display
 	}
 	pipeW.Close()
 	return cmd.Run()
+}
+
+func interactiveDisplay(feedItems []rss.FeedItem, b *rss.Browser, mode rss.DisplayMode, opts ...rss.DisplayOption) error {
+
+	items := make([]rss.FeedItem, 0, len(feedItems))
+	for _, item := range mode(feedItems) {
+		for _, o := range opts {
+			item = o(item)
+		}
+		items = append(items, item)
+	}
+
+	return rss.RunApp(items, b)
 }

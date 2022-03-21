@@ -15,20 +15,20 @@ import (
 	"time"
 )
 
-type colour string
+type Colour string
 
 const (
 	outputTimeLayout = "2006/01/02"
 	// Note these colour codes are not supported on windows.
-	reset  colour = "\033[0m"
-	red    colour = "\033[31m"
-	green  colour = "\033[32m"
-	yellow colour = "\033[33m"
-	blue   colour = "\033[34m"
-	purple colour = "\033[35m"
-	cyan   colour = "\033[36m"
-	gray   colour = "\033[37m"
-	white  colour = "\033[97m"
+	reset  Colour = "\033[0m"
+	red    Colour = "\033[31m"
+	green  Colour = "\033[32m"
+	yellow Colour = "\033[33m"
+	blue   Colour = "\033[34m"
+	purple Colour = "\033[35m"
+	cyan   Colour = "\033[36m"
+	gray   Colour = "\033[37m"
+	white  Colour = "\033[97m"
 )
 
 var (
@@ -354,6 +354,6 @@ func newDateParser(t time.Time) func(string) (time.Time, error) {
 	}
 }
 
-func colourize(text string, c colour) string {
+func colourize(text string, c Colour) string {
 	return fmt.Sprintf("%s%s%s", c, text, reset)
 }

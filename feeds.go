@@ -15,20 +15,21 @@ import (
 	"time"
 )
 
-type colour string
+type Colour string
 
 const (
 	outputTimeLayout = "2006/01/02"
 	// Note these colour codes are not supported on windows.
-	reset  colour = "\033[0m"
-	red    colour = "\033[31m"
-	green  colour = "\033[32m"
-	yellow colour = "\033[33m"
-	blue   colour = "\033[34m"
-	purple colour = "\033[35m"
-	cyan   colour = "\033[36m"
-	gray   colour = "\033[37m"
-	white  colour = "\033[97m"
+	Reset   Colour = "\033[0m"
+	Red     Colour = "\033[31m"
+	green   Colour = "\033[32m"
+	yellow  Colour = "\033[33m"
+	blue    Colour = "\033[34m"
+	purple  Colour = "\033[35m"
+	Cyan    Colour = "\033[36m"
+	gray    Colour = "\033[37m"
+	White   Colour = "\033[97m"
+	WhiteBG Colour = "\033[47m"
 )
 
 var (
@@ -51,13 +52,10 @@ func (fi FeedItem) Format() string {
 	builder := strings.Builder{}
 	if !fi.PublishTime.IsZero() {
 		date := fi.PublishTime.Format(outputTimeLayout)
-		builder.WriteString(fmt.Sprintf("%s:", colourize(date, yellow)))
+		builder.WriteString(date)
 	}
 
 	builder.WriteString(fmt.Sprintf("\t%s", fi.Title))
-	for _, link := range fi.Links {
-		builder.WriteString(fmt.Sprintf("\t%s", colourize(link, blue)))
-	}
 	builder.WriteString("\n")
 	return builder.String()
 }
@@ -100,9 +98,9 @@ type DisplayOption func(FeedItem) FeedItem
 func ColourAfter(t time.Time) DisplayOption {
 	return func(item FeedItem) FeedItem {
 		if item.PublishTime.After(t) {
-			item.Title = colourize(item.Title, cyan)
+			item.Title = Colourize(item.Title, Cyan)
 		} else {
-			item.Title = colourize(item.Title, white)
+			item.Title = Colourize(item.Title, White)
 		}
 
 		return item
@@ -131,7 +129,7 @@ func Grouped(feedItems []FeedItem) []FeedItem {
 		}
 		// Create a title-only item for the feed itself
 		result = append(result, FeedItem{})
-		result = append(result, FeedItem{Title: colourize(feed, green)})
+		result = append(result, FeedItem{Title: feed})
 		for _, item := range ReverseChronological(items) {
 			result = append(result, item)
 		}
@@ -354,6 +352,6 @@ func newDateParser(t time.Time) func(string) (time.Time, error) {
 	}
 }
 
-func colourize(text string, c colour) string {
-	return fmt.Sprintf("%s%s%s", c, text, reset)
+func Colourize(text string, c Colour) string {
+	return fmt.Sprintf("%s%s%s", c, text, Reset)
 }

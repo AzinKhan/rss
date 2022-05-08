@@ -79,8 +79,9 @@ func main() {
 	args.Parse(os.Args[2:])
 	maxAge := time.Duration(maxHours) * time.Hour
 
-	feeds := rss.RefreshFeeds(urls)
-	feedItems := rss.GetFeedItems(feeds, rss.OldestItem(maxAge), rss.Deduplicate(), itemFilter(maxItems))
+	feedsCh := rss.RefreshFeeds(urls)
+
+	filters := []rss.Filter{rss.OldestItem(maxAge), rss.Deduplicate(), itemFilter(maxItems)}
 
 	if interactive {
 		browser, err := rss.NewBrowser()
@@ -88,8 +89,13 @@ func main() {
 			fmt.Fprintf(os.Stderr, err.Error())
 			os.Exit(1)
 		}
-		err = interactiveDisplay(feedItems, browser, displayMode)
+		err = interactiveDisplay(feedsCh, browser, displayMode, rss.WithFilters(filters...))
 	} else {
+		var feeds []*rss.Feed
+		for feed := range feedsCh {
+			feeds = append(feeds, feed)
+		}
+		feedItems := rss.GetFeedItems(feeds, filters...)
 		now := time.Now()
 		err = display(feedItems, displayMode, rss.ColourAfter(now.Add(-2*time.Hour)))
 	}
@@ -168,15 +174,7 @@ func display(feedItems []rss.FeedItem, mode rss.DisplayMode, opts ...rss.Display
 	return cmd.Run()
 }
 
-func interactiveDisplay(feedItems []rss.FeedItem, b *rss.Browser, mode rss.DisplayMode, opts ...rss.DisplayOption) error {
-
-	items := make([]rss.FeedItem, 0, len(feedItems))
-	for _, item := range mode(feedItems) {
-		for _, o := range opts {
-			item = o(item)
-		}
-		items = append(items, item)
-	}
-	app := rss.NewApp(items, b)
+func interactiveDisplay(feeds chan *rss.Feed, b *rss.Browser, mode rss.DisplayMode, opts ...rss.AppOption) error {
+	app := rss.NewApp(feeds, b, mode, opts...)
 	return app.Run()
 }

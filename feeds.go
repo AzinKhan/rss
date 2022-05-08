@@ -11,7 +11,6 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -212,23 +211,30 @@ func GetFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {
 		if feed == nil {
 			continue
 		}
-		newFeedItem := newFeedItemCreator(feed)
-	itemloop:
-		for _, item := range feed.Channel.Items {
-			feedItem, err := newFeedItem(item)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, err.Error())
-				continue
-			}
-			for _, filter := range filters {
-				if !filter(feedItem) {
-					continue itemloop
-				}
-			}
-			feedItems = append(feedItems, feedItem)
-		}
+		feedItems = append(feedItems, UnpackFeed(feed)...)
 	}
 	return feedItems
+}
+
+func UnpackFeed(feed *Feed, filters ...Filter) []FeedItem {
+	var feedItems []FeedItem
+	newFeedItem := newFeedItemCreator(feed)
+itemloop:
+	for _, item := range feed.Channel.Items {
+		feedItem, err := newFeedItem(item)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
+			continue
+		}
+		for _, filter := range filters {
+			if !filter(feedItem) {
+				continue itemloop
+			}
+		}
+		feedItems = append(feedItems, feedItem)
+	}
+	return feedItems
+
 }
 
 // GetURLs reads the given Reader and returns a list of the urls from which
@@ -249,23 +255,20 @@ func GetURLs(r io.Reader) []string {
 
 // RefreshFeeds makes requests to the hosts at the given URLs and returns a *Feed
 // for each.
-func RefreshFeeds(urls []string) []*Feed {
-	var wg sync.WaitGroup
-	wg.Add(len(urls))
-	results := make([]*Feed, len(urls))
-	for i, url := range urls {
-		url := url
-		i := i
-		go func() {
-			defer wg.Done()
-			result, err := getFeed(url)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, err.Error())
-			}
-			results[i] = result
-		}()
-	}
-	wg.Wait()
+func RefreshFeeds(urls []string) chan *Feed {
+	results := make(chan *Feed, len(urls))
+	go func() {
+		for _, url := range urls {
+			url := url
+			go func() {
+				result, err := getFeed(url)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, err.Error())
+				}
+				results <- result
+			}()
+		}
+	}()
 	return results
 }
 

@@ -9,11 +9,31 @@ import (
 )
 
 type App struct {
-	app *tview.Application
-	b   *Browser
+	app   *tview.Application
+	b     *Browser
+	feeds chan *Feed
 }
 
-func NewApp(items []FeedItem, b *Browser) *App {
+type appOptions struct {
+	display []DisplayOption
+	filters []Filter
+}
+
+type AppOption func(*appOptions)
+
+func WithDisplayOptions(opts ...DisplayOption) AppOption {
+	return func(ao *appOptions) {
+		ao.display = append(ao.display, opts...)
+	}
+}
+
+func WithFilters(filters ...Filter) AppOption {
+	return func(ao *appOptions) {
+		ao.filters = append(ao.filters, filters...)
+	}
+}
+
+func NewApp(feeds chan *Feed, b *Browser, mode DisplayMode, opts ...AppOption) *App {
 	app := tview.NewApplication()
 	list := tview.NewList()
 	list.ShowSecondaryText(false)
@@ -37,13 +57,35 @@ func NewApp(items []FeedItem, b *Browser) *App {
 	flex.AddItem(listFlex, 0, 1, true)
 	flex.AddItem(textFlex, 0, 1, false)
 
-	for i, item := range items {
-		link := ""
-		if len(item.Links) > 0 {
-			link = item.Links[0]
-		}
-		list.InsertItem(i, item.Title, link, 0, nil)
+	options := &appOptions{}
+
+	for _, o := range opts {
+		o(options)
 	}
+
+	go func() {
+		var i int
+		for feed := range feeds {
+			feedItems := UnpackFeed(feed, options.filters...)
+			items := make([]FeedItem, 0, len(feedItems))
+			for _, item := range mode(feedItems) {
+				for _, o := range options.display {
+					item = o(item)
+				}
+				items = append(items, item)
+			}
+
+			for _, item := range items {
+				link := ""
+				if len(item.Links) > 0 {
+					link = item.Links[0]
+				}
+				list.InsertItem(i, item.Title, link, 0, nil)
+				i++
+			}
+			app.Draw()
+		}
+	}()
 
 	list.AddItem("Quit", "Press to exit", 'q', func() {
 		app.Stop()
@@ -91,8 +133,9 @@ func NewApp(items []FeedItem, b *Browser) *App {
 	})
 	app.SetRoot(flex, true)
 	return &App{
-		app: app,
-		b:   b,
+		app:   app,
+		b:     b,
+		feeds: feeds,
 	}
 }
 

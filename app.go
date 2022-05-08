@@ -8,7 +8,12 @@ import (
 	"github.com/rivo/tview"
 )
 
-func RunApp(items []FeedItem, b *Browser) error {
+type App struct {
+	app *tview.Application
+	b   *Browser
+}
+
+func NewApp(items []FeedItem, b *Browser) *App {
 	app := tview.NewApplication()
 	list := tview.NewList()
 	list.ShowSecondaryText(false)
@@ -39,6 +44,7 @@ func RunApp(items []FeedItem, b *Browser) error {
 		}
 		list.InsertItem(i, item.Title, link, 0, nil)
 	}
+
 	list.AddItem("Quit", "Press to exit", 'q', func() {
 		app.Stop()
 	})
@@ -52,7 +58,6 @@ func RunApp(items []FeedItem, b *Browser) error {
 		textFlex.SetBorderColor(tcell.ColorGreen)
 		listFlex.SetBorderColor(tcell.ColorGray)
 	}
-
 	textView.SetDoneFunc(func(key tcell.Key) {
 		app.SetFocus(list)
 		toggleBorder()
@@ -85,9 +90,12 @@ func RunApp(items []FeedItem, b *Browser) error {
 		return event
 	})
 	app.SetRoot(flex, true)
-	err := app.Run()
-	if err != nil {
-		return err
+	return &App{
+		app: app,
+		b:   b,
 	}
-	return nil
+}
+
+func (a *App) Run() error {
+	return a.app.Run()
 }

@@ -177,6 +177,6 @@ func interactiveDisplay(feedItems []rss.FeedItem, b *rss.Browser, mode rss.Displ
 		}
 		items = append(items, item)
 	}
-
-	return rss.RunApp(items, b)
+	app := rss.NewApp(items, b)
+	return app.Run()
 }

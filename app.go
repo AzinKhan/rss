@@ -11,9 +11,8 @@ import (
 )
 
 type App struct {
-	app   *tview.Application
-	b     *Browser
-	feeds chan *Feed
+	app *tview.Application
+	b   *Browser
 }
 
 type appOptions struct {
@@ -155,9 +154,8 @@ func NewApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) *App {
 	})
 	app.SetRoot(flex, true)
 	return &App{
-		app:   app,
-		b:     b,
-		feeds: feeds,
+		app: app,
+		b:   b,
 	}
 }
 

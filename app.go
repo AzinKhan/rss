@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -112,17 +113,24 @@ func NewApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) *App {
 	list.SetHighlightFullLine(true)
 
 	var b *Browser
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var err error
+		b, err = NewBrowser()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+	}()
+
 	list.SetSelectedFunc(func(i int, main, secondary string, r rune) {
 		if secondary == "" {
 			return
 		}
 		if b == nil {
-			var err error
-			b, err = NewBrowser()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, err.Error())
-				os.Exit(1)
-			}
+			wg.Wait()
 		}
 		textView.Clear()
 		fmt.Fprintln(textView, secondary)

@@ -66,6 +66,7 @@ func NewApp(feeds chan *Feed, b *Browser, mode DisplayMode, opts ...AppOption) *
 	go func() {
 		var i int
 		for feed := range feeds {
+			currentPosition := list.GetCurrentItem()
 			feedItems := UnpackFeed(feed, options.filters...)
 			items := make([]FeedItem, 0, len(feedItems))
 			for _, item := range mode(feedItems) {
@@ -84,6 +85,8 @@ func NewApp(feeds chan *Feed, b *Browser, mode DisplayMode, opts ...AppOption) *
 				i++
 			}
 			app.Draw()
+			// Keep the cursor where it was
+			list = list.SetCurrentItem(currentPosition)
 		}
 	}()
 

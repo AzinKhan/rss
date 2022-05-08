@@ -3,6 +3,7 @@ package rss
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -33,7 +34,7 @@ func WithFilters(filters ...Filter) AppOption {
 	}
 }
 
-func NewApp(feeds chan *Feed, b *Browser, mode DisplayMode, opts ...AppOption) *App {
+func NewApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) *App {
 	app := tview.NewApplication()
 	list := tview.NewList()
 	list.ShowSecondaryText(false)
@@ -109,9 +110,19 @@ func NewApp(feeds chan *Feed, b *Browser, mode DisplayMode, opts ...AppOption) *
 	})
 
 	list.SetHighlightFullLine(true)
+
+	var b *Browser
 	list.SetSelectedFunc(func(i int, main, secondary string, r rune) {
 		if secondary == "" {
 			return
+		}
+		if b == nil {
+			var err error
+			b, err = NewBrowser()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, err.Error())
+				os.Exit(1)
+			}
 		}
 		textView.Clear()
 		fmt.Fprintln(textView, secondary)

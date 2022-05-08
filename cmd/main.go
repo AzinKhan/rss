@@ -84,12 +84,7 @@ func main() {
 	filters := []rss.Filter{rss.OldestItem(maxAge), rss.Deduplicate(), itemFilter(maxItems)}
 
 	if interactive {
-		browser, err := rss.NewBrowser()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, err.Error())
-			os.Exit(1)
-		}
-		err = interactiveDisplay(feedsCh, browser, displayMode, rss.WithFilters(filters...))
+		err = interactiveDisplay(feedsCh, displayMode, rss.WithFilters(filters...))
 	} else {
 		var feeds []*rss.Feed
 		for feed := range feedsCh {
@@ -174,7 +169,7 @@ func display(feedItems []rss.FeedItem, mode rss.DisplayMode, opts ...rss.Display
 	return cmd.Run()
 }
 
-func interactiveDisplay(feeds chan *rss.Feed, b *rss.Browser, mode rss.DisplayMode, opts ...rss.AppOption) error {
-	app := rss.NewApp(feeds, b, mode, opts...)
+func interactiveDisplay(feeds chan *rss.Feed, mode rss.DisplayMode, opts ...rss.AppOption) error {
+	app := rss.NewApp(feeds, mode, opts...)
 	return app.Run()
 }

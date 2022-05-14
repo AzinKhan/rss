@@ -79,17 +79,13 @@ func main() {
 	args.Parse(os.Args[2:])
 	maxAge := time.Duration(maxHours) * time.Hour
 
-	feedsCh := rss.RefreshFeeds(urls)
-
 	filters := []rss.Filter{rss.OldestItem(maxAge), rss.Deduplicate(), itemFilter(maxItems)}
 
 	if interactive {
+		feedsCh := rss.RefreshFeedsAsync(urls)
 		err = interactiveDisplay(feedsCh, displayMode, rss.WithFilters(filters...))
 	} else {
-		var feeds []*rss.Feed
-		for feed := range feedsCh {
-			feeds = append(feeds, feed)
-		}
+		feeds := rss.RefreshFeeds(urls)
 		feedItems := rss.GetFeedItems(feeds, filters...)
 		now := time.Now()
 		err = display(feedItems, displayMode, rss.ColourAfter(now.Add(-2*time.Hour)))

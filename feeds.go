@@ -11,6 +11,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -253,9 +254,9 @@ func GetURLs(r io.Reader) []string {
 	return urls
 }
 
-// RefreshFeeds makes requests to the hosts at the given URLs and returns a *Feed
-// for each.
-func RefreshFeeds(urls []string) chan *Feed {
+// RefreshFeedsAsync makes requests to the hosts in parallel and writes them to
+// the returned channel.
+func RefreshFeedsAsync(urls []string) chan *Feed {
 	results := make(chan *Feed, len(urls))
 	go func() {
 		for _, url := range urls {
@@ -269,6 +270,27 @@ func RefreshFeeds(urls []string) chan *Feed {
 			}()
 		}
 	}()
+	return results
+}
+
+func RefreshFeeds(urls []string) []*Feed {
+	n := len(urls)
+	results := make([]*Feed, n)
+	var wg sync.WaitGroup
+	wg.Add(n)
+	for i, url := range urls {
+		url := url
+		i := i
+		go func() {
+			defer wg.Done()
+			result, err := getFeed(url)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, err.Error())
+			}
+			results[i] = result
+		}()
+	}
+	wg.Wait()
 	return results
 }
 

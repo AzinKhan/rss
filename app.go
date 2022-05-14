@@ -10,11 +10,6 @@ import (
 	"github.com/rivo/tview"
 )
 
-type App struct {
-	app *tview.Application
-	b   *Browser
-}
-
 type appOptions struct {
 	display []DisplayOption
 	filters []Filter
@@ -34,7 +29,7 @@ func WithFilters(filters ...Filter) AppOption {
 	}
 }
 
-func NewApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) *App {
+func RunApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) error {
 	app := tview.NewApplication()
 	list := tview.NewList()
 	list.ShowSecondaryText(false)
@@ -153,12 +148,5 @@ func NewApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) *App {
 		return event
 	})
 	app.SetRoot(flex, true)
-	return &App{
-		app: app,
-		b:   b,
-	}
-}
-
-func (a *App) Run() error {
-	return a.app.Run()
+	return app.Run()
 }

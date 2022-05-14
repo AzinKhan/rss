@@ -170,6 +170,5 @@ func display(feedItems []rss.FeedItem, mode rss.DisplayMode, opts ...rss.Display
 }
 
 func interactiveDisplay(feeds chan *rss.Feed, mode rss.DisplayMode, opts ...rss.AppOption) error {
-	app := rss.NewApp(feeds, mode, opts...)
-	return app.Run()
+	return rss.RunApp(feeds, mode, opts...)
 }

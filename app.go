@@ -152,6 +152,27 @@ func RunApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) error {
 				toggleBorder()
 				return nil
 			}
+		case tcell.KeyDown:
+			focus := app.GetFocus()
+			_, isList := focus.(*tview.List)
+			if isList {
+				n := list.GetItemCount() - 1
+				currentItem := list.GetCurrentItem()
+				if n == currentItem {
+					// Swallow the event to stop jumping to the start
+					return nil
+				}
+			}
+		case tcell.KeyUp:
+			focus := app.GetFocus()
+			_, isList := focus.(*tview.List)
+			if isList {
+				currentItem := list.GetCurrentItem()
+				if currentItem == 0 {
+					// Swallow the event to stop jumping to the end
+					return nil
+				}
+			}
 
 		}
 		return event

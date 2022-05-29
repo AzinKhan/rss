@@ -86,10 +86,6 @@ func RunApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) error {
 		}
 	}()
 
-	list.AddItem("Quit", "Press to exit", 'q', func() {
-		app.Stop()
-	})
-
 	toggleBorder := func(ps ...*tview.Box) {
 		if listFlex.HasFocus() {
 			listFlex.SetBorderColor(tcell.ColorGreen)

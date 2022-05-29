@@ -144,6 +144,19 @@ func RunApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) error {
 		switch event.Key() {
 		case tcell.KeyCtrlQ, tcell.KeyCtrlC:
 			app.Stop()
+		case tcell.KeyRight:
+			if app.GetFocus() != textView {
+				app.SetFocus(textView)
+				toggleBorder()
+				return nil
+			}
+		case tcell.KeyLeft:
+			if app.GetFocus() != listFlex {
+				app.SetFocus(listFlex)
+				toggleBorder()
+				return nil
+			}
+
 		}
 		return event
 	})

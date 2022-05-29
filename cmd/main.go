@@ -76,7 +76,11 @@ func main() {
 	args := flag.NewFlagSet("display", flag.ExitOnError)
 	args.IntVar(&maxHours, "max", 24, "Max age of items (hours)")
 	args.IntVar(&maxItems, "limit", 0, "Max items per channel")
-	args.Parse(os.Args[2:])
+	argv := os.Args[2:]
+	if interactive {
+		argv = os.Args[3:]
+	}
+	args.Parse(argv)
 	maxAge := time.Duration(maxHours) * time.Hour
 
 	filters := []rss.Filter{rss.OldestItem(maxAge), rss.Deduplicate(), itemFilter(maxItems)}

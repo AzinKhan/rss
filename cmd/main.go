@@ -150,23 +150,13 @@ func editFeedsFile(filepath string) error {
 }
 
 func display(feedItems []rss.FeedItem, mode rss.DisplayMode, opts ...rss.DisplayOption) error {
-	// Pipe output to less for paging
-	cmd := exec.Command("less")
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	pipeW, err := cmd.StdinPipe()
-	if err != nil {
-		return err
-	}
-
-	w := tabwriter.NewWriter(pipeW, 1, 1, 1, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
 	rss.Display(w, feedItems, mode, opts...)
 	err = w.Flush()
 	if err != nil {
 		return err
 	}
-	pipeW.Close()
-	return cmd.Run()
+	return nil
 }
 
 func interactiveDisplay(feeds chan *rss.Feed, mode rss.DisplayMode, opts ...rss.AppOption) error {

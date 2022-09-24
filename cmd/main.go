@@ -151,7 +151,10 @@ func editFeedsFile(filepath string) error {
 
 func display(feedItems []rss.FeedItem, mode rss.DisplayMode, opts ...rss.DisplayOption) error {
 	w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
-	rss.Display(w, feedItems, mode, opts...)
+	err := rss.Display(w, feedItems, mode, opts...)
+	if err != nil {
+		return err
+	}
 	err = w.Flush()
 	if err != nil {
 		return err

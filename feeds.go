@@ -140,14 +140,18 @@ func Grouped(feedItems []FeedItem) []FeedItem {
 }
 
 // Display writes the feed items to the given writer in the provided display
-// mode.
-func Display(w io.Writer, feedItems []FeedItem, displayMode DisplayMode, opts ...DisplayOption) {
+// mode. Returns any error encountered by writing to w.
+func Display(w io.Writer, feedItems []FeedItem, displayMode DisplayMode, opts ...DisplayOption) error {
 	for _, item := range displayMode(feedItems) {
 		for _, o := range opts {
 			item = o(item)
 		}
-		fmt.Fprintf(w, item.Format())
+		_, err := fmt.Fprintf(w, item.Format())
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 type Filter func(FeedItem) bool

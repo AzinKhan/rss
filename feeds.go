@@ -124,7 +124,7 @@ func Grouped(feedItems []FeedItem) []FeedItem {
 		itemsByFeed[item.Feed] = existing
 	}
 
-	result := make([]FeedItem, 0, len(feedItems))
+	result := make([]FeedItem, 0, len(itemsByFeed))
 	for feed, items := range itemsByFeed {
 		if len(items) == 0 {
 			continue

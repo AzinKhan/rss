@@ -156,6 +156,19 @@ func Display(w io.Writer, feedItems []FeedItem, displayMode DisplayMode, opts ..
 
 type Filter func(FeedItem) bool
 
+type Filters []Filter
+
+// Apply applies all the filters to an item and returns true if they all pass,
+// otherwise false.
+func (fs Filters) Apply(fi FeedItem) bool {
+	for _, f := range fs {
+		if !f(fi) {
+			return false
+		}
+	}
+	return true
+}
+
 // Deduplicate ensures that each feed item only appears in the output once.
 func Deduplicate() Filter {
 	urls := make(map[string]struct{})
@@ -216,7 +229,7 @@ func GetFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {
 		if feed == nil {
 			continue
 		}
-		feedItems = append(feedItems, UnpackFeed(feed)...)
+		feedItems = append(feedItems, UnpackFeed(feed, filters...)...)
 	}
 	return feedItems
 }
@@ -224,18 +237,17 @@ func GetFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {
 func UnpackFeed(feed *Feed, filters ...Filter) []FeedItem {
 	var feedItems []FeedItem
 	newFeedItem := newFeedItemCreator(feed)
-itemloop:
+	fs := Filters(filters)
 	for _, item := range feed.Channel.Items {
 		feedItem, err := newFeedItem(item)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())
 			continue
 		}
-		for _, filter := range filters {
-			if !filter(feedItem) {
-				continue itemloop
-			}
+		if !fs.Apply(feedItem) {
+			continue
 		}
+
 		feedItems = append(feedItems, feedItem)
 	}
 	return feedItems

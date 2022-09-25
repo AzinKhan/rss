@@ -54,6 +54,11 @@ func (fi FeedItem) Format() string {
 		builder.WriteString(fmt.Sprintf("%s:", colourize(date, yellow)))
 	}
 
+	if len(fi.Links) == 0 && len(fi.Title) != 0 {
+		// This is one of the items acting as a title card for the feed so
+		// colour its title green.
+		fi.Title = colourize(fi.Title, green)
+	}
 	builder.WriteString(fmt.Sprintf("\t%s", fi.Title))
 	for _, link := range fi.Links {
 		builder.WriteString(fmt.Sprintf("\t%s", colourize(link, blue)))
@@ -131,7 +136,7 @@ func Grouped(feedItems []FeedItem) []FeedItem {
 		}
 		// Create a title-only item for the feed itself
 		result = append(result, FeedItem{})
-		result = append(result, FeedItem{Title: colourize(feed, green)})
+		result = append(result, FeedItem{Title: feed})
 		for _, item := range ReverseChronological(items) {
 			result = append(result, item)
 		}

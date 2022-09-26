@@ -48,23 +48,7 @@ type FeedItem struct {
 }
 
 func (fi FeedItem) Format() string {
-	builder := strings.Builder{}
-	if !fi.PublishTime.IsZero() {
-		date := fi.PublishTime.Format(outputTimeLayout)
-		builder.WriteString(fmt.Sprintf("%s:", colourize(date, yellow)))
-	}
-
-	if len(fi.Links) == 0 && len(fi.Title) != 0 {
-		// This is one of the items acting as a title card for the feed so
-		// colour its title green.
-		fi.Title = colourize(fi.Title, green)
-	}
-	builder.WriteString(fmt.Sprintf("\t%s", fi.Title))
-	for _, link := range fi.Links {
-		builder.WriteString(fmt.Sprintf("\t%s", colourize(link, blue)))
-	}
-	builder.WriteString("\n")
-	return builder.String()
+	return formatFeed(fi, includeLinks(true))
 }
 
 type Feed struct {
@@ -395,8 +379,4 @@ func newDateParser(t time.Time) func(string) (time.Time, error) {
 		}
 		return t, err
 	}
-}
-
-func colourize(text string, c Colour) string {
-	return fmt.Sprintf("%s%s%s", c, text, reset)
 }

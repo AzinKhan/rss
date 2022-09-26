@@ -77,7 +77,7 @@ func RunApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) error {
 				if len(item.Links) > 0 {
 					link = item.Links[0]
 				}
-				list.InsertItem(i, item.Title, link, 0, nil)
+				list.InsertItem(i, formatFeedInteractive(item), link, 0, nil)
 				i++
 			}
 			app.Draw()

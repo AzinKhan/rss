@@ -266,7 +266,7 @@ func RefreshFeedsAsync(urls []string) chan *Feed {
 			go func() {
 				result, err := getFeed(url)
 				if err != nil {
-					fmt.Fprintf(os.Stderr, err.Error())
+					return
 				}
 				results <- result
 			}()

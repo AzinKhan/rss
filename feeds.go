@@ -5,7 +5,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -301,12 +300,9 @@ func getFeed(url string) (*Feed, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error getting %s: %w", url, err)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("error reading body from %s: %w", url, err)
-	}
+	defer resp.Body.Close()
 	var rss RSS
-	err = xml.Unmarshal(body, &rss)
+	err = xml.NewDecoder(resp.Body).Decode(&rss)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling body from %s: %w", url, err)
 	}

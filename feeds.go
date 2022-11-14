@@ -209,7 +209,7 @@ func MaxItems(n int) Filter {
 // GetFeedItems unpacks the items within the given feeds, applying filters if
 // given.
 func GetFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {
-	var feedItems []FeedItem
+	feedItems := make([]FeedItem, 0, len(feeds))
 	for _, feed := range feeds {
 		if feed == nil {
 			continue

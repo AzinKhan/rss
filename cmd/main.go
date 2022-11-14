@@ -134,9 +134,7 @@ func selectSingleFeed(urls []string) string {
 func printSelection(urls []string) {
 	var builder strings.Builder
 	for i, url := range urls {
-		builder.WriteString(fmt.Sprintf("%d:\t", i))
-		builder.WriteString(url)
-		builder.WriteString("\n")
+		builder.WriteString(fmt.Sprintf("%d:\t%s\n", i, url))
 	}
 	fmt.Fprintf(os.Stdout, builder.String())
 }

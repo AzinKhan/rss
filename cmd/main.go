@@ -160,6 +160,6 @@ func display(feedItems []rss.FeedItem, mode rss.DisplayMode, opts ...rss.Display
 	return nil
 }
 
-func interactiveDisplay(feeds chan *rss.Feed, mode rss.DisplayMode, opts ...rss.AppOption) error {
+func interactiveDisplay(feeds <-chan *rss.Feed, mode rss.DisplayMode, opts ...rss.AppOption) error {
 	return rss.RunApp(feeds, mode, opts...)
 }

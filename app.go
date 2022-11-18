@@ -29,7 +29,7 @@ func WithFilters(filters ...Filter) AppOption {
 	}
 }
 
-func RunApp(feeds chan *Feed, mode DisplayMode, opts ...AppOption) error {
+func RunApp(feeds <-chan *Feed, mode DisplayMode, opts ...AppOption) error {
 	app := tview.NewApplication()
 	list := tview.NewList()
 	list.ShowSecondaryText(false)

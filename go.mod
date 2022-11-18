@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/AzinKhan/functools v0.0.0-20221118172207-ecefed8f3a1c // indirect
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect

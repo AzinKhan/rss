@@ -10,8 +10,9 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"sync"
 	"time"
+
+	"github.com/AzinKhan/functools"
 )
 
 type Colour string
@@ -257,42 +258,23 @@ func GetURLs(r io.Reader) []string {
 
 // RefreshFeedsAsync makes requests to the hosts in parallel and writes them to
 // the returned channel.
-func RefreshFeedsAsync(urls []string) chan *Feed {
-	results := make(chan *Feed, len(urls))
-	go func() {
-		for _, url := range urls {
-			url := url
-			go func() {
-				result, err := getFeed(url)
-				if err != nil {
-					return
-				}
-				results <- result
-			}()
-		}
-	}()
-	return results
+func RefreshFeedsAsync(urls []string) <-chan *Feed {
+	return functools.MapChan(getFeedWrapper, urls)
 }
 
 func RefreshFeeds(urls []string) []*Feed {
-	n := len(urls)
-	results := make([]*Feed, n)
-	var wg sync.WaitGroup
-	wg.Add(n)
-	for i, url := range urls {
-		url := url
-		i := i
-		go func() {
-			defer wg.Done()
-			result, err := getFeed(url)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, err.Error())
-			}
-			results[i] = result
-		}()
+	return functools.MapAsync(getFeedWrapper, urls)
+}
+
+// getFeedWrapper is a simple wrapper around getFeed which just prints the
+// error, if non-nil, to stderr.
+func getFeedWrapper(url string) *Feed {
+	feed, err := getFeed(url)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
 	}
-	wg.Wait()
-	return results
+	return feed
+
 }
 
 func getFeed(url string) (*Feed, error) {

@@ -1,3 +1,5 @@
+github.com/AzinKhan/functools v0.0.0-20221118172207-ecefed8f3a1c h1:wc/Wkl3n5kslgZuIKgflTzWQAeiFhHlEtW5i4hn8EOs=
+github.com/AzinKhan/functools v0.0.0-20221118172207-ecefed8f3a1c/go.mod h1:2gDnSTBbSGdx9r36MwNCtTA3ZgF4Uy44e6HSDi+nFMk=
 github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 h1:y5HC9v93H5EPKqaS1UYVg1uYah5Xf51mBfIoWehClUQ=
 github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964/go.mod h1:Xd9hchkHSWYkEqJwUGisez3G1QY8Ryz0sdWrLPMGjLk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

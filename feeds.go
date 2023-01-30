@@ -34,9 +34,7 @@ const (
 var (
 	dateFormats = []string{time.RFC1123, time.RFC1123Z, "Mon, 2 Jan 2006 15:04:05 MST"}
 	client      = http.DefaultClient
-	paywalls    = []string{
-		"https://www.ft.com",
-	}
+	paywalls    = []string{}
 )
 
 type FeedItem struct {

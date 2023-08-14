@@ -62,6 +62,9 @@ func RunApp(feeds <-chan *Feed, mode DisplayMode, opts ...AppOption) error {
 	go func() {
 		var i int
 		for feed := range feeds {
+			if feed == nil {
+				continue
+			}
 			currentPosition := list.GetCurrentItem()
 			feedItems := UnpackFeed(feed, options.filters...)
 			items := make([]FeedItem, 0, len(feedItems))

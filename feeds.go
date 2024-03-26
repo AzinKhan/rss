@@ -332,10 +332,10 @@ func newFeedItemCreator(feed *Feed) func(Item) (FeedItem, error) {
 	}
 }
 
-func newDateParser(t time.Time) func(string) (time.Time, error) {
+func newDateParser(defaultTime time.Time) func(string) (time.Time, error) {
 	return func(rawDate string) (time.Time, error) {
 		if rawDate == "" {
-			return t, nil
+			return defaultTime, nil
 		}
 		var t time.Time
 		var err error

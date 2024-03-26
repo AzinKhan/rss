@@ -1,0 +1,3 @@
+A simple, non-persistent, RSS client. I use this primarily to keep up with news.
+
+Currently, it requires both Vim and Firefox to be installed, in order to be able to edit the subscription list and render pages in interactive mode.

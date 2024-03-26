@@ -219,9 +219,10 @@ func GetFeedItems(feeds []*Feed, filters ...Filter) []FeedItem {
 }
 
 func UnpackFeed(feed *Feed, filters ...Filter) []FeedItem {
-	var feedItems []FeedItem
 	newFeedItem := newFeedItemCreator(feed)
 	fs := Filters(filters)
+
+	feedItems := make([]FeedItem, 0, len(feed.Channel.Items))
 	for _, item := range feed.Channel.Items {
 		feedItem, err := newFeedItem(item)
 		if err != nil {
@@ -257,36 +258,27 @@ func GetURLs(r io.Reader) []string {
 // RefreshFeedsAsync makes requests to the hosts in parallel and writes them to
 // the returned channel.
 func RefreshFeedsAsync(urls []string) <-chan *Feed {
-	return functools.MapChan(getFeedWrapper, urls)
+	return functools.MapChan(getFeed, urls)
 }
 
 func RefreshFeeds(urls []string) []*Feed {
-	return functools.MapAsync(getFeedWrapper, urls)
+	return functools.MapAsync(getFeed, urls)
 }
 
-// getFeedWrapper is a simple wrapper around getFeed which just prints the
-// error, if non-nil, to stderr.
-func getFeedWrapper(url string) *Feed {
-	feed, err := getFeed(url)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-	}
-	return feed
-
-}
-
-func getFeed(url string) (*Feed, error) {
+func getFeed(url string) *Feed {
 	resp, err := client.Get(url)
 	if err != nil {
-		return nil, fmt.Errorf("error getting %s: %w", url, err)
+		fmt.Fprintf(os.Stderr, "error getting %s: %s", url, err.Error())
+		return nil
 	}
 	defer resp.Body.Close()
 	var rss RSS
 	err = xml.NewDecoder(resp.Body).Decode(&rss)
 	if err != nil {
-		return nil, fmt.Errorf("error unmarshaling body from %s: %w", url, err)
+		fmt.Fprintf(os.Stderr, "error unmarshaling body from %s: %s", url, err.Error())
+		return nil
 	}
-	return &Feed{url, rss}, nil
+	return &Feed{url, rss}
 }
 
 func linkFormatter(feed *Feed) func(Item) string {

@@ -100,14 +100,19 @@ func main() {
 	}
 }
 
+// selectSingleFeed shows the list of urls to the user and allows them to select
+// one to load interactively by typing in the corresponding number.
 func selectSingleFeed(urls []string) string {
 	n := len(urls)
-	numPlaces := n / 10
+	numDigits := 0
+	for N := n; N != 0; N /= 10 {
+		numDigits++
+	}
 	printSelection(urls)
 	var i int
 	for {
 
-		b := make([]byte, 1+numPlaces)
+		b := make([]byte, numDigits)
 		os.Stdin.Read(b)
 
 		iStr := strings.Split(string(b), "\n")
@@ -125,7 +130,6 @@ func selectSingleFeed(urls []string) string {
 		if i < n {
 			break
 		}
-
 	}
 	return urls[i]
 

@@ -15,20 +15,8 @@ import (
 	"github.com/AzinKhan/functools"
 )
 
-type Colour string
-
 const (
 	outputTimeLayout = "2006/01/02"
-	// Note these colour codes are not supported on windows.
-	reset  Colour = "\033[0m"
-	red    Colour = "\033[31m"
-	green  Colour = "\033[32m"
-	yellow Colour = "\033[33m"
-	blue   Colour = "\033[34m"
-	purple Colour = "\033[35m"
-	cyan   Colour = "\033[36m"
-	gray   Colour = "\033[37m"
-	white  Colour = "\033[97m"
 )
 
 var (

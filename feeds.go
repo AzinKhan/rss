@@ -255,14 +255,16 @@ func GetURLs(r io.Reader) []string {
 	return urls
 }
 
-// RefreshFeedsAsync makes requests to the hosts in parallel and writes them to
-// the returned channel.
-func RefreshFeedsAsync(urls []string) <-chan *Feed {
-	return functools.MapChan(getFeed, urls)
+// GetFeeds makes requests to the hosts in parallel and collects the results
+// into a slice.
+func GetFeeds(urls []string) []*Feed {
+	return functools.MapAsync(getFeed, urls)
 }
 
-func RefreshFeeds(urls []string) []*Feed {
-	return functools.MapAsync(getFeed, urls)
+// GetFeedsAsync makes requests to the hosts in parallel and writes the results
+// to the returned channel as they are received.
+func GetFeedsAsync(urls []string) <-chan *Feed {
+	return functools.MapChan(getFeed, urls)
 }
 
 func getFeed(url string) *Feed {

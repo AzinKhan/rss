@@ -86,10 +86,10 @@ func main() {
 	filters := []rss.Filter{rss.OldestItem(maxAge), rss.Deduplicate(), itemFilter(maxItems)}
 
 	if interactive {
-		feedsCh := rss.RefreshFeedsAsync(urls)
+		feedsCh := rss.GetFeedsAsync(urls)
 		err = interactiveDisplay(feedsCh, displayMode, rss.WithFilters(filters...))
 	} else {
-		feeds := rss.RefreshFeeds(urls)
+		feeds := rss.GetFeeds(urls)
 		feedItems := rss.GetFeedItems(feeds, filters...)
 		now := time.Now()
 		err = display(feedItems, displayMode, rss.ColourAfter(now.Add(-2*time.Hour)))

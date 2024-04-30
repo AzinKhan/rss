@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path"
@@ -15,7 +17,8 @@ import (
 )
 
 const (
-	feedsFile = ".rss/urls.txt"
+	feedsDir  = ".rss"
+	feedsFile = "urls.txt"
 )
 
 func main() {
@@ -24,17 +27,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	homedir, err := os.UserHomeDir()
+	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, err.Error())
 		os.Exit(1)
 	}
 
-	feedsFilepath := path.Join(homedir, feedsFile)
+	feedsDirPath := path.Join(homeDir, feedsDir)
+	feedsFilepath := path.Join(feedsDirPath, feedsFile)
+
 	f, err := os.Open(feedsFilepath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
-		os.Exit(1)
+		// If the file doesn't exist then create it.
+		// If the error is something else then exit.
+		if !errors.Is(err, os.ErrNotExist) {
+			fmt.Fprintf(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+		err = os.Mkdir(feedsDirPath, fs.ModePerm)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
+			os.Exit(1)
+		}
+		f, err = os.Create(feedsFilepath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, err.Error())
+			os.Exit(1)
+		}
 	}
 	defer f.Close()
 	urls := rss.GetURLs(f)

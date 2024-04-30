@@ -56,6 +56,7 @@ func main() {
 			os.Exit(1)
 		}
 		fmt.Fprintf(os.Stderr, "Run 'rss edit' command to add your first url(s)\n")
+		os.Exit(0)
 	}
 	defer f.Close()
 	urls := rss.GetURLs(f)

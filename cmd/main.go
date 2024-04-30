@@ -38,6 +38,7 @@ func main() {
 
 	f, err := os.Open(feedsFilepath)
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "No feeds file found, creating one at %s\n", feedsFilepath)
 		// If the file doesn't exist then create it.
 		// If the error is something else then exit.
 		if !errors.Is(err, os.ErrNotExist) {
@@ -54,6 +55,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, err.Error())
 			os.Exit(1)
 		}
+		fmt.Fprintf(os.Stderr, "Run 'rss edit' command to add your first url(s)\n")
 	}
 	defer f.Close()
 	urls := rss.GetURLs(f)

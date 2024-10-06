@@ -17,6 +17,7 @@ import (
 
 const (
 	outputTimeLayout = "2006/01/02"
+	userAgent        = "rss-reader"
 )
 
 var (
@@ -256,7 +257,15 @@ func GetFeedsAsync(urls []string) <-chan *Feed {
 }
 
 func getFeed(url string) *Feed {
-	resp, err := client.Get(url)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error building request: %s", err.Error())
+		return nil
+	}
+	req.Header.Add("User-Agent", userAgent)
+
+	// TODO: Use better client than default.
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error getting %s: %s", url, err.Error())
 		return nil

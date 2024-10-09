@@ -28,6 +28,7 @@ var (
 
 type FeedItem struct {
 	Title       string
+	Description string
 	PublishTime time.Time
 	Links       []string
 	Feed        string
@@ -323,6 +324,7 @@ func newFeedItemCreator(feed *Feed) func(Item) (FeedItem, error) {
 		}
 		return FeedItem{
 			Title:       item.Title,
+			Description: string(item.Description),
 			Links:       links,
 			PublishTime: pubTime,
 			Feed:        feed.Channel.Title,
